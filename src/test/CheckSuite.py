@@ -105,54 +105,56 @@ func Votien (b int) {
     }
 }
 """
-        expect = "Redeclared Constant: b\n"
+        expect = "Redeclared Constant: a\n"
         self.assertTrue(TestChecker.test(input, expect, 412))
 
-#     def test_413(self):
-#         input = """
-# var a = 1;
-# var b = a;
-# var c = d;"""
-#         expect = "Undeclared Identifier: d\n"
-#         self.assertTrue(TestChecker.test(input, expect, 413))
+    def test_413(self):
+        input = """
+var a = 1;
+var b = a;
+var c = d;"""
+        expect = "Undeclared Identifier: d\n"
+        self.assertTrue(TestChecker.test(input, expect, 413))
 
-#     def test_414(self):
-#         input = """
-# func Votien () int {return 1;}
+    def test_414(self):
+        input = """
+func Votien () int {return 1;}
 
-# func foo () {
-#     var b = Votien();
-#     foo_votine();
-#     return;
-# }"""
-#         expect = "Undeclared Function: foo_votine\n"
-#         self.assertTrue(TestChecker.test(input, expect, 414))
+func foo () {
+    var b = Votien();
+    foo_votine();
+    return;
+};"""
+        expect = "Undeclared Function: foo_votine\n"
+        self.assertTrue(TestChecker.test(input, expect, 414))
 
-#     def test_415(self):
-#         input = """
-# type TIEN struct {
-#     Votien int;
-# }
+    def test_415(self):
+        input = """
+type TIEN struct {
+    Votien int;
+}
 
-# func (v TIEN) getInt () {
-#     const c = v.Votien;
-#     var d = v.tien;
-# }"""
-#         expect = "Undeclared Attribute: tien\n"
-#         self.assertTrue(TestChecker.test(input, expect, 415))
+func (v TIEN) getInt () {
+    const c = v.Votien;
+    var d = v.tien;
+}
+"""
+        expect = "Undeclared Field: tien\n"
+        self.assertTrue(TestChecker.test(input, expect, 415))
 
-#     def test_416(self):
-#         input = """
-# type TIEN struct {
-#     Votien int;
-# }
+    def test_416(self):
+        input = """
+type TIEN struct {
+    Votien int;
+}
 
-# func (v TIEN) getInt () {
-#     v.getInt ();
-#     v.putInt ();
-# }"""
-#         expect = "Undeclared Method: putInt\n"
-#         self.assertTrue(TestChecker.test(input, expect, 416))
+func (v TIEN) getInt () {
+    v.getInt ();
+    v.putInt ();
+}
+"""
+        expect = "Undeclared Method: putInt\n"
+        self.assertTrue(TestChecker.test(input, expect, 416))
 
     def test_417(self):
         input = """
@@ -174,3 +176,52 @@ func (p Person) getAge (p string) int {
 """
         expect = "Redeclared Parameter: p\n"
         self.assertTrue(TestChecker.test(input, expect, 418))
+        
+    def test_419(self):
+        input = """
+func main () {
+    
+    for idx, val := range arr {
+        var idx = 1;
+        var val = 2;
+    }
+}
+"""
+        expect = "Redeclared Variable: idx\n"
+        self.assertTrue(TestChecker.test(input, expect, 419))
+        
+    def test_420(self):
+        input = """
+    const a = 2;
+    func foo () {
+        const a = 1;
+        for var b = 1; b < 1; b += 2 {
+            const b = 1;
+        }
+    }
+    """
+        expect = "Redeclared Constant: b\n"
+        self.assertTrue(TestChecker.test(input, expect, 420))
+        
+    def test_421(self):
+        input = """
+    func foo () {
+        const a = 1;
+        for a, b := range [3]int {1, 2, 3} {
+            var b = 1;
+        }
+    }
+    """
+        expect = "Redeclared Variable: b\n"
+        self.assertTrue(TestChecker.test(input, expect, 421))
+        
+    def test_423(self):
+        input = """
+    func putIntLn() {return;}
+    """
+        expect = "Redeclared Function: putIntLn\n"
+        self.assertTrue(TestChecker.test(input, expect, 423))
+
+
+        
+        
