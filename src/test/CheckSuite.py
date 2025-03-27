@@ -222,6 +222,163 @@ func main () {
         expect = "Redeclared Function: putIntLn\n"
         self.assertTrue(TestChecker.test(input, expect, 423))
 
+    def test_424(self):
+        input = """
+type Person struct {
+    name string;
+    age int;
+}
 
+func main () {
+    var p int;
+    p.getAge();
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(p),getAge,[])\n"
+        self.assertTrue(TestChecker.test(input, expect, 424))
+        
+    def test_425(self):
+        input = """
+func main() {
+    var a int;
+    var b = a + "Tin";
+}
+"""
+        expect = """Type Mismatch: BinaryOp(Id(a),+,StringLiteral("Tin"))\n"""
+        self.assertTrue(TestChecker.test(input, expect, 425))
+
+    def test_426(self):
+        input = """
+func main() {
+    var a int;
+    var b = a + 1.2;
+    var c = a % b;
+}
+"""
+        expect = """Type Mismatch: BinaryOp(Id(a),%,Id(b))\n"""
+        self.assertTrue(TestChecker.test(input, expect, 426))
+        
+    def test_427(self):
+        """Test Return type match"""
+        input = """
+func foo() int {
+    return;
+}
+"""
+        expect = "Type Mismatch: Return()\n"
+        self.assertTrue(TestChecker.test(input, expect, 427))
+        
+    def test_428(self):
+        """Test Return type match"""
+        input = """
+func main() {
+    return 10;
+}
+"""
+        expect = "Type Mismatch: Return(IntLiteral(10))\n"
+        self.assertTrue(TestChecker.test(input, expect, 428))
+        
+    def test_429(self):
+        """Test return type of call statement"""
+        input = """
+func foo() int {
+    return 1;
+}
+func main() {
+    foo();
+}
+"""
+        expect = "Type Mismatch: FuncCall(foo,[])\n"
+        self.assertTrue(TestChecker.test(input, expect, 429))
         
         
+    def test_430(self):
+        """Invalid func_call"""
+        input = """
+func f(a int, b float) int {
+    return 10;
+}
+
+func main() {
+    f(1, 2);
+}
+"""
+        expect = "Type Mismatch: FuncCall(f,[IntLiteral(1),IntLiteral(2)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 430))
+        
+    def test_431(self):
+        """Invalid method call"""
+        input = """
+type Person struct {
+    name string;
+    age int;
+}
+
+func (p Person) getAge () int {
+    return p.age;
+}
+
+func main() {
+    var p Person;
+    p.getAge(1);
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(p),getAge,[IntLiteral(1)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 431))
+        
+    def test_432(self):
+        """Invalid builtins function call"""
+        input = """
+func main() {
+    var a = getInt(1);
+}
+"""
+        expect = "Type Mismatch: FuncCall(getInt,[IntLiteral(1)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 432))
+        
+    def test_433(self):
+        """Invalid function call"""
+        input = """
+type Person struct {
+    name string;
+    age int;
+}
+
+type Animal struct {}
+
+func printInfo(p Person) {
+    return;
+}
+func main() {
+    var a Animal;
+    printInfo(a);
+}
+"""     
+        expect = "Type Mismatch: FuncCall(printInfo,[Id(a)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 433))
+        
+    def test_434(self):
+        """Invalid method call"""
+        input = """
+type Person struct {
+    name string;
+    age int;
+}
+
+func (p Person) compareAge (p2 Person) boolean {
+    return p.age > p2.age;
+}
+
+type Animal struct {
+    age int;
+    name string;
+}
+
+func main() {
+    var a Animal;
+    var b Person;
+    b.compareAge(a);
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(b),compareAge,[Id(a)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 434))
