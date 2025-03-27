@@ -382,3 +382,73 @@ func main() {
 """
         expect = "Type Mismatch: MethodCall(Id(b),compareAge,[Id(a)])\n"
         self.assertTrue(TestChecker.test(input, expect, 434))
+
+    def test_435(self):
+        """ A call statement must invoke a function/method with a return type of VoidType"""
+        input = """
+func foo() int {
+    return 1;
+}
+func main() {
+    foo();
+}
+"""
+        expect = "Type Mismatch: FuncCall(foo,[])\n"
+        self.assertTrue(TestChecker.test(input, expect, 435))
+        
+    def test_436(self):
+        """The number of arguments in the call must match the number of parameters in
+ the function/method definition"""
+        input = """
+func foo(a int, b float) int {
+    return 10;
+}
+
+func main() {
+    foo(1, 2, 3);
+}
+"""
+        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1),IntLiteral(2),IntLiteral(3)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 436))
+        
+    def test_437(self):
+        """Each argument must have the exact same type as its
+ corresponding parameter. """
+        input = """
+func foo(a int, b string) {
+    return;
+}
+func main() {
+    foo(1, 2.0);
+}
+"""
+        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1),FloatLiteral(2.0)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 437))
+        
+    def test_438(self):
+        """"Each argument must have the exact same type as its
+ corresponding parameter. """
+        input = """
+type Person struct {
+    name string;
+    age int;
+}
+
+type Animal struct {
+    species string;
+    age int;
+}
+
+func printInfo(p Person) {
+    return;
+}
+
+func main() {
+    var a Animal;
+    var b Person;
+    printInfo(b);
+    printInfo(a);
+}
+"""
+        expect = "Type Mismatch: FuncCall(printInfo,[Id(a)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 438))

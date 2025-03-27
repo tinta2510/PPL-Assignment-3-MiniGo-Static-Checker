@@ -53,6 +53,41 @@ class StaticChecker(BaseVisitor,Utils):
     
     def check(self):
         return self.visit(self.ast,[])
+    
+    def determineType(self, typ):
+        """
+        Determine the StructType or InterfaceType of the Id Type
+        
+        :param typ: Type
+        :return: Type
+        """
+        if isinstance(typ, Id):
+            user_defined_type = self.lookup(typ.name, self.structs + self.interfaces, lambda x: x.name)
+            if user_defined_type is None:
+                raise Undeclared(Type(), typ.name)
+            return user_defined_type
+        return typ
+
+    def matchType(self, lhs, rhs):
+        """
+        Compare two types
+        
+        :param type1: Type
+        :param type2: Type
+        :return: bool
+        """
+        lhs = self.determineType(lhs)
+        rhs = self.determineType(rhs)
+        if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
+            # TODO the struct type implements all prototypes declared in the interface
+            pass
+        if isinstance(lhs, StructType) and isinstance(rhs, StructType):
+            print("Compare StructType", lhs, rhs)
+            return lhs.name == rhs.name
+        if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
+            # TODO
+            pass
+        return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
         """
@@ -304,8 +339,8 @@ class StaticChecker(BaseVisitor,Utils):
                 raise TypeMismatch(ast)
         else:
             exprType = self.visit(ast.expr, c)
-            if not type(self.current_func.retType) == type(exprType): #??? FloatType and IntType
-                raise TypeMismatch(ast)
+            if not self.matchType(self.current_func.retType, exprType): 
+                raise TypeMismatch(ast) 
         return VoidType()
         
     def visitBinaryOp(self, ast, c): 
@@ -369,9 +404,12 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Wrong type of parameters
         wrongType = next(filter(
-            lambda pair: self.visit(pair[0], c) != pair[1].parType, 
+            lambda pair: not self.matchType(self.visit(pair[0], c), self.determineType(pair[1].parType)), 
             zip(ast.args, func_decl.params)
         ), None)
+        # print(list(zip(ast.args, func_decl.params)))
+        # print([(self.visit(pair[0], c), self.determineType(pair[1].parType)) for pair in zip(ast.args, func_decl.params)])
+        # print("wrongType", wrongType)
         if wrongType is not None:
             raise TypeMismatch(ast)
         return func_decl.retType
@@ -381,11 +419,10 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: MethCall
         :param c: list[list[Symbol]]
         """
-        
+        # Reciver must have StructType or InterfaceType
         receiver = self.visit(ast.receiver, c) # receiver: Type
         if not isinstance(receiver, (StructType, InterfaceType)):
             raise TypeMismatch(ast) 
-        #??? Undeclared StrucType receiver
         
         # Undeclared Method
         method_decl = self.lookup(ast.metName, receiver.methods, lambda x: x.fun.name)
@@ -398,13 +435,12 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Wrong type of parameters
         wrongType = next(filter(
-            lambda pair: self.visit(pair[0], c) != pair[1].parType, 
+            lambda pair: not self.matchType(self.visit(pair[0], c), self.determineType(pair[1].parType)), 
             zip(ast.args, method_decl.fun.params)
         ), None)
         if wrongType is not None:
             raise TypeMismatch(ast)
         return method_decl.fun.retType
-    
     
     def visitId(self, ast, c): 
         """
