@@ -79,14 +79,30 @@ class StaticChecker(BaseVisitor,Utils):
         lhs = self.determineType(lhs)
         rhs = self.determineType(rhs)
         if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
-            # TODO the struct type implements all prototypes declared in the interface
+            # the struct type implements all prototypes declared in the interface
+            for prototype in lhs.methods:
+                method_decl = self.lookup(prototype.name, rhs.methods, lambda x: x.fun.name)
+                if method_decl is None:
+                    return False
+                if not self.matchType(prototype.retType, method_decl.fun.retType):
+                    return False
+                if len(prototype.params) != len(method_decl.fun.params):
+                    return False
+                wrongType = next(filter(
+                                lambda pair: not self.matchType(pair[0], pair[1].parType), 
+                                zip(prototype.params, method_decl.fun.params)
+                            ), None)
+                if wrongType is not None:
+                    return False
+                return True
+        if isinstance(lhs, InterfaceType) and isinstance(rhs, InterfaceType):
+            # TODO
             pass
         if isinstance(lhs, StructType) and isinstance(rhs, StructType):
-            print("Compare StructType", lhs, rhs)
             return lhs.name == rhs.name
         if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
             # TODO
-            pass
+            return lhs.dimension == rhs.dimension and self.matchType(lhs.eleType, rhs.eleType)
         return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
@@ -407,9 +423,6 @@ class StaticChecker(BaseVisitor,Utils):
             lambda pair: not self.matchType(self.visit(pair[0], c), self.determineType(pair[1].parType)), 
             zip(ast.args, func_decl.params)
         ), None)
-        # print(list(zip(ast.args, func_decl.params)))
-        # print([(self.visit(pair[0], c), self.determineType(pair[1].parType)) for pair in zip(ast.args, func_decl.params)])
-        # print("wrongType", wrongType)
         if wrongType is not None:
             raise TypeMismatch(ast)
         return func_decl.retType
