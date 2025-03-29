@@ -214,6 +214,17 @@ func main () {
     """
         expect = "Redeclared Variable: b\n"
         self.assertTrue(TestChecker.test(input, expect, 421))
+    
+    def test_422(self):
+        input =  """
+type S1 struct {votien int;}
+type I1 interface {votien();}
+var a I1;
+var c I1 = nil;
+var d S1 = nil;
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 422))
         
     def test_423(self):
         input = """
@@ -638,6 +649,7 @@ var c [3] int = b;
 var d [3] string = b;
 """
         expect = "Type Mismatch: VarDecl(d,ArrayType(StringType,[IntLiteral(3)]),Id(b))\n"
+        self.assertTrue(TestChecker.test(input, expect, 453))
         
     def test_454(self):
         input =  """
@@ -662,5 +674,33 @@ var c = b.getX().v;
 var d = c.x;
 """
         expect = "Type Mismatch: FieldAccess(Id(c),x)\n"
-        self.assertTrue(TestChecker.test(input, expect, 454))
+        self.assertTrue(TestChecker.test(input, expect, 455))
         
+    def test_456(self):
+        input =  """
+type S1 struct {votien int;}
+type I1 interface {votien();}
+var a I1;
+var c I1 = nil;
+var d S1 = nil;
+func foo(){
+    c := a;
+    a := nil;
+}
+
+var e int = nil;
+"""
+        expect = "Type Mismatch: VarDecl(e,IntType,Nil)\n"
+        self.assertTrue(TestChecker.test(input, expect, 456))
+        
+    def test_457(self):
+        input =  """
+var a boolean = 1 > 2;
+var b boolean = 1.0 < 2.0;
+var c boolean = "1" == "2";
+var d boolean = 1 > 2.0;
+"""
+        expect= "Type Mismatch: BinaryOp(IntLiteral(1),>,FloatLiteral(2.0))\n"
+        self.assertTrue(TestChecker.test(input, expect, 457))
+        
+    

@@ -114,9 +114,12 @@ class StaticChecker(BaseVisitor,Utils):
         :param type2: Type
         :return: bool
         """
-        # TODO: nil
         lhs = self.determineType(lhs)
         rhs = self.determineType(rhs)
+        # TODO: nil #???
+        if isinstance(rhs, StructType) and rhs.name == "":
+            if isinstance(lhs, (InterfaceType, StructType)):
+                return True
         if not exact_same_type:
             if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
                 # the struct type implements all prototypes declared in the interface
@@ -451,26 +454,26 @@ class StaticChecker(BaseVisitor,Utils):
                 return left_type
             if validType((IntType, FloatType)):
                 return FloatType()
-            raise TypeMismatch(ast)
         
-        if ast.op in ["-", "*", "/"]:
+        elif ast.op in ["-", "*", "/"]:
             if validType(IntType) or validType(FloatType):
                 return left_type
             if validType((IntType, FloatType)):
                 return FloatType()
-            raise TypeMismatch(ast)
         
-        if ast.op in ["%"] and not validType(IntType):
-            raise TypeMismatch(ast)
+        elif ast.op in ["%"]:
+            if validType(IntType):
+                return IntType()
         
-        if ast.op in ["==", "!=", ">", "<", ">=", "<="]:
-            if not validType((IntType, FloatType, StringType)):
-                raise TypeMismatch(ast)
-            return BoolType()
+        elif ast.op in ["==", "!=", ">", "<", ">=", "<="]:
+            if validType(IntType) or validType(FloatType) or validType(StringType):
+                return BoolType()
         
-        if ast.op in ["&&", "||"] and not validType(BoolType):
-            raise TypeMismatch(ast)
-        return left_type
+        elif ast.op in ["&&", "||"]:
+            if validType(BoolType):
+                return BoolType()
+            
+        raise TypeMismatch(ast)
     
     def visitUnaryOp(self, ast, c): 
         body_type = self.visit(ast.body, c)
@@ -619,7 +622,7 @@ class StaticChecker(BaseVisitor,Utils):
         return Id(ast.name)
         
     def visitNilLiteral(self, ast, c): 
-        return VoidType()
+        return StructType("", [], [])
         
     def visitIntType(self, ast, c): return None
     def visitFloatType(self, ast, c): return None
