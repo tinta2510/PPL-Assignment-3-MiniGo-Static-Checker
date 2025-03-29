@@ -485,12 +485,11 @@ func main() {
         input = """
 var a = [1][2]float{{1, 2, 3}, {4, 5, 6}};
 func main() {
-    a := [2][3]int{143, 213, 3}
     a := [1][2]float{{1.0, 2.0}, {3.0, 4.0}};
-    a := [1][2]string{{3, 2}, {3, 4}};
+    a := [2][3]int{143, 213, 3}
 }
 """
-        expect = "Type Mismatch: Assign(Id(a),ArrayLiteral([IntLiteral(1),IntLiteral(2)],StringType,[[IntLiteral(3),IntLiteral(2)],[IntLiteral(3),IntLiteral(4)]]))\n"
+        expect = "Type Mismatch: Assign(Id(a),ArrayLiteral([IntLiteral(2),IntLiteral(3)],IntType,[IntLiteral(143),IntLiteral(213),IntLiteral(3)]))\n"
         self.assertTrue(TestChecker.test(input, expect, 441))
 
     def test_442(self):
@@ -526,3 +525,96 @@ func main () {
 """
         expect = "Type Mismatch: ForEach(Id(idx),Id(val),Id(arr),Block([VarDecl(idx,IntLiteral(1)),VarDecl(val,IntLiteral(2))]))\n"
         self.assertTrue(TestChecker.test(input, expect, 443))
+        
+    def test_444(self):
+        input = """
+var A int;
+func (a A) b(x int) {
+    return;
+}
+type A struct{
+    attr int;
+}
+"""
+        expect = "Redeclared Type: A\n"
+        self.assertTrue(TestChecker.test(input, expect, 444))
+    
+    def test_445(self):
+        input = """
+const a = 2; 
+const b = 1 + a;
+var c [b]int = [2]int {1,2};
+"""
+        expect = "Type Mismatch: VarDecl(c,ArrayType(IntType,[Id(b)]),ArrayLiteral([IntLiteral(2)],IntType,[IntLiteral(1),IntLiteral(2)]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 445))
+        
+    def test_446(self):
+        input = """
+const a = 2; 
+const b = 1 + a;
+var c [b]int = [3]int {1,2};
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 446))
+    
+    def test_447(self):
+        input =  """
+const v = 3;
+const a = v + v;
+const f = a * 2 + a;
+var b [f]int;
+var c [18]int = b;
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 447)) 
+        
+    def test_448(self):
+        input =  """
+const v = 3;
+const a = v + v;
+const f = a * 2 + a + 10;
+var b [f]int;
+var c [18]int = b;
+"""
+        expect = "Type Mismatch: VarDecl(c,ArrayType(IntType,[IntLiteral(18)]),Id(b))\n"
+        self.assertTrue(TestChecker.test(input, expect, 448)) 
+    
+    def test_449(self):
+        input =  """
+func foo(a [2]float) {
+    foo([2]float{1.0,2.0})
+    foo([2]int{1,2})
+}
+        """
+        expect = """Type Mismatch: FuncCall(foo,[ArrayLiteral([IntLiteral(2)],IntType,[IntLiteral(1),IntLiteral(2)])])\n"""
+        self.assertTrue(TestChecker.test(input, expect, 449)) 
+        
+    def test_450(self):
+        input =  """
+    type A interface {foo();}
+    const A = 2;
+        """
+        expect = "Redeclared Constant: A\n"
+        self.assertTrue(TestChecker.test(input, expect, 450))
+
+    def test_451(self):
+        input =  """
+  
+var v TIEN;      
+type TIEN struct {
+    a int;
+} 
+type VO interface {
+    foo() int;
+}
+
+func (v TIEN) foo() int {return 1;}
+func (b TIEN) koo() {b.koo();}
+func foo() {
+    var x VO;  
+    const b = x.foo(); 
+    x.koo(); 
+}
+"""
+        expect = "Undeclared Method: koo\n" #???
+        self.assertTrue(TestChecker.test(input, expect, 451))
