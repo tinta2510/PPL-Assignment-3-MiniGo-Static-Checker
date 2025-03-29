@@ -618,3 +618,23 @@ func foo() {
 """
         expect = "Undeclared Method: koo\n" #???
         self.assertTrue(TestChecker.test(input, expect, 451))
+        
+    def test_452(self):
+        input =  """
+type S1 struct {v int; t int;}
+
+var a = S1 {v : 1, t: 2}
+var b S1 = a;
+var c int = b;
+"""
+        expect = "Type Mismatch: VarDecl(c,IntType,Id(b))\n"
+        self.assertTrue(TestChecker.test(input, expect, 452))
+        
+    def test_453(self):
+        input =  """
+var a [2][3] int;
+var b = a[1];
+var c [3] int = b;
+var d [3] string = b;
+"""
+        expect = "Type Mismatch: VarDecl(d,ArrayType(StringType,[IntLiteral(3)]),Id(b))\n"

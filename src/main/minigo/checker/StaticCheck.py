@@ -564,6 +564,13 @@ class StaticChecker(BaseVisitor,Utils):
         checkIdx = next(filter(lambda x: not isinstance(self.visit(x, c), IntType), ast.idx), None)
         if checkIdx is not None:
             raise TypeMismatch(ast)
+        if len(arrayType.dimens) < len(ast.idx):
+            raise TypeMismatch(ast)
+        elif len(arrayType.dimens) > len(ast.idx):
+            return ArrayType(
+                arrayType.dimens[len(ast.idx):],
+                arrayType.eleType
+            )
         return arrayType.eleType
         
     def visitFieldAccess(self, ast, c): 
@@ -608,12 +615,11 @@ class StaticChecker(BaseVisitor,Utils):
     
     def visitStructLiteral(self, ast, c):  
         # Check all initialized fields (Undeclared or not)
-        [self.visit(element[1]) for element in ast.elements]
+        [self.visit(element[1], c) for element in ast.elements]
         return Id(ast.name)
         
     def visitNilLiteral(self, ast, c): 
         return VoidType()
-    
         
     def visitIntType(self, ast, c): return None
     def visitFloatType(self, ast, c): return None
