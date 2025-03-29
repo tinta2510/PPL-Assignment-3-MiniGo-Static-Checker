@@ -501,7 +501,7 @@ class StaticChecker(BaseVisitor,Utils):
         ), None)
         if wrongType is not None:
             raise TypeMismatch(ast)
-        return func_decl.retType
+        return self.determineType(func_decl.retType)
     
     def visitMethCall(self, ast, c): 
         """
@@ -537,7 +537,7 @@ class StaticChecker(BaseVisitor,Utils):
         ), None)
         if wrongType is not None:
             raise TypeMismatch(ast)
-        return func_signature.retType
+        return self.determineType(func_signature.retType)
     
     def visitId(self, ast, c): 
         """
@@ -571,7 +571,7 @@ class StaticChecker(BaseVisitor,Utils):
                 arrayType.dimens[len(ast.idx):],
                 arrayType.eleType
             )
-        return arrayType.eleType
+        return self.determineType(arrayType.eleType)
         
     def visitFieldAccess(self, ast, c): 
         """
@@ -579,7 +579,7 @@ class StaticChecker(BaseVisitor,Utils):
         :param c: list[list[Symbol]]
         """
         receiverType = self.visit(ast.receiver, c) # receiver: Type
-        if not isinstance(receiverType, StructType):
+        if not isinstance(self.determineType(receiverType), StructType):
             raise TypeMismatch(ast) #??? Future
         #??? Undeclared StrucType receiver
         
@@ -587,7 +587,7 @@ class StaticChecker(BaseVisitor,Utils):
         field = self.lookup(ast.field, receiverType.elements, lambda x: x[0])
         if field is None:
             raise Undeclared(Field(), ast.field)
-        return field[1]
+        return self.determineType(field[1])
 
     def visitIntLiteral(self, ast, c): 
         return IntType()

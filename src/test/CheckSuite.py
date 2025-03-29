@@ -638,3 +638,29 @@ var c [3] int = b;
 var d [3] string = b;
 """
         expect = "Type Mismatch: VarDecl(d,ArrayType(StringType,[IntLiteral(3)]),Id(b))\n"
+        
+    def test_454(self):
+        input =  """
+type S1 struct {v int; x S1;}
+var b S1;
+var c = b.x.v;
+var d = c.x;
+"""
+        expect = "Type Mismatch: FieldAccess(Id(c),x)\n"
+        self.assertTrue(TestChecker.test(input, expect, 454))
+
+    def test_455(self):
+        input =  """
+type S1 struct {v int; x S1;}
+
+func (s S1) getX() S1 {
+    return s.x;
+}
+
+var b S1;
+var c = b.getX().v;
+var d = c.x;
+"""
+        expect = "Type Mismatch: FieldAccess(Id(c),x)\n"
+        self.assertTrue(TestChecker.test(input, expect, 454))
+        
