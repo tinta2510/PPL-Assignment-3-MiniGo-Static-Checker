@@ -180,7 +180,7 @@ func (p Person) getAge (p string) int {
     def test_419(self):
         input = """
 func main () {
-    
+    arr := [1]int{1, 2, 3};
     for idx, val := range arr {
         var idx = 1;
         var val = 2;
@@ -452,3 +452,77 @@ func main() {
 """
         expect = "Type Mismatch: FuncCall(printInfo,[Id(a)])\n"
         self.assertTrue(TestChecker.test(input, expect, 438))
+        
+    def test_439(self):
+        """Initialized an undeclared scalar by assignment"""
+        input = """
+var b int = 1;
+func main() {
+    a := 10;
+    const a = 20;
+}
+"""
+        expect = "Redeclared Constant: a\n"
+        self.assertTrue(TestChecker.test(input, expect, 439))
+        
+    def test_440(self):
+        """ if the LHS has an interface type, the RHS may have a struct type, provided that the struct type implements all prototypes declared in the interface."""
+        input = """
+type Foo interface {
+    foo();
+}
+type Bar struct {}
+
+func main() {
+    var a Foo = Bar{};
+}
+"""
+        expect = "Type Mismatch: VarDecl(a,Id(Foo),StructLiteral(Bar,[]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 440))
+    
+    def test_441(self):
+        """Array Literal"""
+        input = """
+var a = [1][2]float{{1, 2, 3}, {4, 5, 6}};
+func main() {
+    a := [2][3]int{143, 213, 3}
+    a := [1][2]float{{1.0, 2.0}, {3.0, 4.0}};
+    a := [1][2]string{{3, 2}, {3, 4}};
+}
+"""
+        expect = "Type Mismatch: Assign(Id(a),ArrayLiteral([IntLiteral(1),IntLiteral(2)],StringType,[[IntLiteral(3),IntLiteral(2)],[IntLiteral(3),IntLiteral(4)]]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 441))
+
+    def test_442(self):
+        """ if the LHS has an interface type, the RHS may have a struct type, provided that the struct type implements all prototypes declared in the interface."""
+        input = """
+type Foo interface {
+    foo();
+}
+type Bar struct {
+    a int;
+}
+
+func (b Bar) foo() {
+    return;
+}
+
+func main() {
+    var a Foo = Bar{};
+}
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 442))
+        
+    def test_443(self):
+        input = """
+func main () {
+    arr := 10;
+    for idx, val := range arr {
+        var idx = 1;
+        var val = 2;
+    }
+}
+"""
+        expect = "Type Mismatch: ForEach(Id(idx),Id(val),Id(arr),Block([VarDecl(idx,IntLiteral(1)),VarDecl(val,IntLiteral(2))]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 443))

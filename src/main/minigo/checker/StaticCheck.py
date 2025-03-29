@@ -68,7 +68,7 @@ class StaticChecker(BaseVisitor,Utils):
             return user_defined_type
         return typ
 
-    def matchType(self, lhs, rhs):
+    def matchType(self, lhs, rhs, exact_same_type=True):
         """
         Compare two types
         
@@ -78,31 +78,35 @@ class StaticChecker(BaseVisitor,Utils):
         """
         lhs = self.determineType(lhs)
         rhs = self.determineType(rhs)
-        if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
-            # the struct type implements all prototypes declared in the interface
-            for prototype in lhs.methods:
-                method_decl = self.lookup(prototype.name, rhs.methods, lambda x: x.fun.name)
-                if method_decl is None:
-                    return False
-                if not self.matchType(prototype.retType, method_decl.fun.retType):
-                    return False
-                if len(prototype.params) != len(method_decl.fun.params):
-                    return False
-                wrongType = next(filter(
-                                lambda pair: not self.matchType(pair[0], pair[1].parType), 
-                                zip(prototype.params, method_decl.fun.params)
-                            ), None)
-                if wrongType is not None:
-                    return False
+        if not exact_same_type:
+            if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
+                # the struct type implements all prototypes declared in the interface
+                for prototype in lhs.methods:
+                    method_decl = self.lookup(prototype.name, rhs.methods, lambda x: x.fun.name)
+                    if method_decl is None:
+                        return False
+                    if not self.matchType(prototype.retType, method_decl.fun.retType):
+                        return False
+                    if len(prototype.params) != len(method_decl.fun.params):
+                        return False
+                    wrongType = next(filter(
+                                    lambda pair: not self.matchType(pair[0], pair[1].parType), 
+                                    zip(prototype.params, method_decl.fun.params)
+                                ), None)
+                    if wrongType is not None:
+                        return False
+                    return True
+            if isinstance(lhs, FloatType) and isinstance(rhs, IntType):
                 return True
-        if isinstance(lhs, InterfaceType) and isinstance(rhs, InterfaceType):
-            # TODO
-            pass
-        if isinstance(lhs, StructType) and isinstance(rhs, StructType):
+            if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
+                if isinstance(lhs.eleType, FloatType) and isinstance(rhs.eleType, IntType):
+                    return len(lhs.dimens) == len(rhs.dimens)
+                return len(lhs.dimens) == len(rhs.dimens) and self.matchType(lhs.eleType, rhs.eleType)
+        if isinstance(lhs, (StructType, InterfaceType)) and isinstance(rhs, (StructType, InterfaceType)):
             return lhs.name == rhs.name
         if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
-            # TODO
-            return lhs.dimension == rhs.dimension and self.matchType(lhs.eleType, rhs.eleType)
+            # How to compare ArrayType?
+            return len(lhs.dimens) == len(rhs.dimens) and self.matchType(lhs.eleType, rhs.eleType)
         return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
@@ -176,10 +180,18 @@ class StaticChecker(BaseVisitor,Utils):
         # Redeclared Variable
         if self.lookup(ast.varName, c[-1], lambda x: x.name) is not None:
             raise Redeclared(Variable(), ast.varName) 
+        # Type Mismatch
+        varInitType = self.visit(ast.varInit, c) if ast.varInit is not None else None
+        if ast.varType is None:
+            ast.varType = varInitType # varType and varInit cannot be both None due to syntax rule
+        elif (varInitType is not None and 
+              not self.matchType(ast.varType, varInitType, exact_same_type=False)
+        ):
+            raise TypeMismatch(ast)
         return Symbol(
             ast.varName, 
             ast.varType, 
-            self.visit(ast.varInit, c) if ast.varInit is not None else None
+            varInitType
         )
 
     def visitConstDecl(self, ast, c):
@@ -188,14 +200,10 @@ class StaticChecker(BaseVisitor,Utils):
         :param c: list[list[Symbol]]
         :return: Symbol
         """
-        # Redeclared Constant
-        if self.lookup(ast.conName, c[-1], lambda x: x.name) is not None:
+        try:
+            return self.visit(VarDecl(ast.conName, ast.conType, ast.iniExpr), c)
+        except Redeclared as e:
             raise Redeclared(Constant(), ast.conName)
-        return Symbol(
-            ast.conName, 
-            ast.conType, 
-            self.visit(ast.iniExpr, c) if ast.iniExpr is not None else None
-        )
    
     def visitFuncDecl(self, ast, c):
         """
@@ -208,7 +216,7 @@ class StaticChecker(BaseVisitor,Utils):
         if self.lookup(ast.name, c[-1], lambda x: x.name) is not None:
             raise Redeclared(Function(), ast.name)
         # Redeclared ParamDecl
-        reduce(lambda acc, ele: acc[:-1] + [acc[-1] + [self.visit(ele, acc)]], ast.params, c + [[]])
+        c = reduce(lambda acc, ele: acc[:-1] + [acc[-1] + [self.visit(ele, acc)]], ast.params, c + [[]])
         # Redeclared in Block
         self.visit(ast.body, c)
         self.current_func = None
@@ -285,6 +293,8 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: ForBasic
         :param c: list[list[Symbol]]
         """
+        if not isinstance(self.visit(ast.cond, c), BoolType):
+            raise TypeMismatch(ast)
         self.visit(ast.loop, c)
         return VoidType()
 
@@ -293,9 +303,12 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: ForStep
         :param c: list[list[Symbol]]
         """
-        # Redeclared Variable
+        # Redeclared Variable, Type Mismatch in Init and Update
         block = Block([ast.init] + ast.loop.member + [ast.upda])
         self.visit(block, c)
+        # Check type of condition expr
+        if not isinstance(self.visit(ast.cond, c), BoolType):
+            raise TypeMismatch(ast)
         return VoidType()
         
     def visitForEach(self, ast, c):
@@ -303,10 +316,14 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: ForEach
         :param c: list[list[Symbol]]
         """
+        arrType = self.visit(ast.arr, c)
+        # Check type of array expr
+        if not isinstance(arrType, ArrayType):
+            raise TypeMismatch(ast)
         block = Block(
             [
-                VarDecl(ast.idx.name, IntType(), None), 
-                VarDecl(ast.value.name, None, None)
+                Assign(Id(ast.idx.name), IntLiteral(0)), # Assign or VarDecl
+                Assign(Id(ast.value.name), ArrayCell(ast.arr, [IntLiteral(0)]))
             ] + 
             ast.loop.member
         )
@@ -328,20 +345,28 @@ class StaticChecker(BaseVisitor,Utils):
         reduce(blockReducer, ast.member, c + [[]])
 
     def visitIf(self, ast, c): 
-        ""
+        # TODO
+        if not isinstance(self.visit(ast.expr, c), BoolType):
+            raise TypeMismatch(ast)
+        self.visit(ast.thenStmt, c)
+        if ast.elseStmt is not None:
+            self.visit(ast.elseStmt, c)
         return VoidType()
     
-    def visitIntType(self, ast, c): return None
-    def visitFloatType(self, ast, c): return None
-    def visitBoolType(self, ast, c): return None
-    def visitStringType(self, ast, c): return None
-    def visitVoidType(self, ast, c): return None
-    def visitArrayType(self, ast, c): return None
     def visitAssign(self, ast, c): 
-        # TODO
-        
+        try:
+            lhs_type = self.visit(ast.lhs, c)
+        except Undeclared as e:
+            if isinstance(ast.lhs, Id):
+                # Initialized an undeclared scalar by assignment
+                return self.visit(VarDecl(ast.lhs.name, None, ast.rhs), c)
+            raise e
+        rhs_type = self.visit(ast.rhs, c)
+        if isinstance(lhs_type, VoidType):
+            raise TypeMismatch(ast)
+        if not self.matchType(lhs_type, rhs_type, exact_same_type=False):
+            raise TypeMismatch(ast)
         return VoidType()
-        
     
     def visitContinue(self, ast, c): 
         return VoidType()
@@ -420,7 +445,7 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Wrong type of parameters
         wrongType = next(filter(
-            lambda pair: not self.matchType(self.visit(pair[0], c), self.determineType(pair[1].parType)), 
+            lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], c)), 
             zip(ast.args, func_decl.params)
         ), None)
         if wrongType is not None:
@@ -448,7 +473,7 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Wrong type of parameters
         wrongType = next(filter(
-            lambda pair: not self.matchType(self.visit(pair[0], c), self.determineType(pair[1].parType)), 
+            lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], c)), 
             zip(ast.args, method_decl.fun.params)
         ), None)
         if wrongType is not None:
@@ -510,11 +535,32 @@ class StaticChecker(BaseVisitor,Utils):
     def visitStringLiteral(self, ast, c): 
         return StringType()
     
-    def visitArrayLiteral(self, ast, c): 
-        pass
+    def visitArrayLiteral(self, ast, c):
+        # TODO: Test
+        def checkElements(ele, c):
+            """
+            :param ele: NestedList = Union[PrimLit, List['NestedList']]
+            """
+            if isinstance(ele, list):
+                [checkElements(e, c) for e in ele]
+            else:
+                self.visit(ele, c)
+        checkElements(ast.value, c)
+        return ArrayType(ast.dimens, ast.eleType)
     
-    def visitStructLiteral(self, ast: StructLiteral, c):  
-        pass 
+    def visitStructLiteral(self, ast, c):  
+        # TODO: Test
+        # Check all initialized fields (Undeclared or not)
+        [self.visit(element[1]) for element in ast.elements]
+        return Id(ast.name)
         
-    def visitNilLiteral(self, ast: NilLiteral, c): 
+    def visitNilLiteral(self, ast, c): 
         return VoidType()
+    
+        
+    def visitIntType(self, ast, c): return None
+    def visitFloatType(self, ast, c): return None
+    def visitBoolType(self, ast, c): return None
+    def visitStringType(self, ast, c): return None
+    def visitVoidType(self, ast, c): return None
+    def visitArrayType(self, ast, c): return None
