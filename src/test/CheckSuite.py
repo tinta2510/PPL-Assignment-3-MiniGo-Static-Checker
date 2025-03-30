@@ -703,4 +703,131 @@ var d boolean = 1 > 2.0;
         expect= "Type Mismatch: BinaryOp(IntLiteral(1),>,FloatLiteral(2.0))\n"
         self.assertTrue(TestChecker.test(input, expect, 457))
         
+    def test_458(self):
+        input =  """
+func foo(){
+    for var i int = 1; a < 10; i := 1.0 {
+        var a = 1;
+    }
+}
+"""
+        expect = "Undeclared Identifier: a\n" # ???
+        self.assertTrue(TestChecker.test(input, expect, 458))
+        
+    def test_459(self):
+        input =  """
+func foo() int {
+    return [2]int{1, 2}[a]
+}
+
+var a = foo;
+"""
+        expect = "Undeclared Identifier: a\n"
+        self.assertTrue(TestChecker.test(input, expect, 459))
+        
+    def test_460(self):
+        input =  """
+
+func foo(){
+    for var i int = 3; i; i := 1.0 {
+        var a = 1;
+    }
+}
+"""
+        expect = "Type Mismatch: For(VarDecl(i,IntType,IntLiteral(3)),Id(i),Assign(Id(i),FloatLiteral(1.0)),Block([VarDecl(a,IntLiteral(1))]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 460))
+        
+    def test_461(self):
+        input =  """
+
+type S1 struct {votien int;}
+func (s S1) vo() {return ;}
+func (s S1) votien() {
+s.votien();
+var a = s.vo();
+}
+"""     
+        expect = "Type Mismatch: MethodCall(Id(s),vo,[])\n"
+        self.assertTrue(TestChecker.test(input, expect, 461))
     
+    def test_462(self):
+        input =  """var a [2] int = [2][2] int {{1,2}, {2,2}};"""
+        expect = "Type Mismatch: VarDecl(a,ArrayType(IntType,[IntLiteral(2)]),ArrayLiteral([IntLiteral(2),IntLiteral(2)],IntType,[[IntLiteral(1),IntLiteral(2)],[IntLiteral(2),IntLiteral(2)]]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 462))
+
+    def test_463(self):
+        input =  """
+
+type A interface {foo();}
+
+func foo() {
+    return A;
+}
+"""
+        expect = "Undeclared Identifier: A\n"
+        self.assertTrue(TestChecker.test(input, expect, 463))
+    
+    def test_464(self):
+        input =  """
+
+type S1 struct {votien int;}
+type I1 interface {votien();}
+
+func (s S1) votien() {return;}
+
+var b [2] S1;
+var a [2] I1 = b;
+"""
+        expect = "Type Mismatch: VarDecl(a,ArrayType(Id(I1),[IntLiteral(2)]),Id(b))\n"
+        self.assertTrue(TestChecker.test(input, expect, 464))
+        
+    def test_465(self):
+        input =  """
+var a = [2] int {1, 2}
+var c [2] float = a
+""" 
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 465))
+        
+    def test_466(self):
+        input =  """
+type K struct {a int;}
+func (k K) koo(a [1 + 2] int) {return;}
+type H interface {koo(a [1 + 2] int);}
+
+const c = 4;
+func foo() {
+    var k H;
+    k.koo([c - 1] int {1,2,3})
+} 
+"""
+        input = Program([StructType("K",[("a",IntType())],[]),MethodDecl("k",Id("K"),FuncDecl("koo",[ParamDecl("a",ArrayType([BinaryOp("+", IntLiteral(1), IntLiteral(2))],IntType()))],VoidType(),Block([Return(None)]))),InterfaceType("H",[Prototype("koo",[ArrayType([BinaryOp("+", IntLiteral(1), IntLiteral(2))],IntType())],VoidType())]),ConstDecl("c",None,IntLiteral(4)),FuncDecl("foo",[],VoidType(),Block([VarDecl("k",Id("H"), None),MethCall(Id("k"),"koo",[ArrayLiteral([BinaryOp("-", Id("c"), IntLiteral(1))],IntType(),[IntLiteral(1),IntLiteral(2),IntLiteral(3)])])]))])
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 466)) #??? #!!!
+        
+    def test_467(self):
+        input =  """
+func foo() {
+    var arr [2][3]int
+    for a, b := range arr {
+        var c int = a
+        var d [3]float = b
+        var e [2]string = a
+    }
+}
+"""
+        expect = "Type Mismatch: VarDecl(e,ArrayType(StringType,[IntLiteral(2)]),Id(a))\n"
+        self.assertTrue(TestChecker.test(input, expect, 467))
+        
+    def test_468(self):
+        input =  """
+const a = 2;
+type STRUCT struct {x [a] int;}
+func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
+func foo(x [a] int) [a] int  {
+    const a = 3;
+    return [a] int {1,2};
+}
+"""
+        expect =  "Type Mismatch: FuncDecl"
+        self.assertTrue(TestChecker.test(input, expect, 468))
