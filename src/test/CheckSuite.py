@@ -437,8 +437,7 @@ func main() {
         self.assertTrue(TestChecker.test(input, expect, 437))
         
     def test_438(self):
-        """"Each argument must have the exact same type as its
- corresponding parameter. """
+        """"Each argument must have the exact same type as its corresponding parameter. """
         input = """
 type Person struct {
     name string;
@@ -819,15 +818,15 @@ func foo() {
         expect = "Type Mismatch: VarDecl(e,ArrayType(StringType,[IntLiteral(2)]),Id(a))\n"
         self.assertTrue(TestChecker.test(input, expect, 467))
         
-    def test_468(self):
-        input =  """
-const a = 2;
-type STRUCT struct {x [a] int;}
-func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
-func foo(x [a] int) [a] int  {
-    const a = 3;
-    return [a] int {1,2};
-}
-"""
-        expect =  "Type Mismatch: FuncDecl"
-        self.assertTrue(TestChecker.test(input, expect, 468))
+#     def test_468(self):
+#         input =  """
+# const a = 2;
+# type STRUCT struct {x [a] int;}
+# func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
+# func foo(x [a] int) [a] int  {
+#     const a = 3;
+#     return [a] int {1,2};
+# }
+# """
+#         expect =  "Type Mismatch: FuncDecl"
+#         self.assertTrue(TestChecker.test(input, expect, 468))

@@ -92,18 +92,26 @@ class StaticChecker(BaseVisitor,Utils):
                 return bodyValue
         raise TypeMismatch(ast)
     
-    def determineType(self, typ):
+    def determineType(self, typ, c):
         """
         Determine the StructType or InterfaceType of the Id Type
         
         :param typ: Type
         :return: Type
         """
+        print(typ)
         if isinstance(typ, Id):
             user_defined_type = self.lookup(typ.name, self.structs + self.interfaces, lambda x: x.name)
             if user_defined_type is None:
                 raise Undeclared(Type(), typ.name)
             return user_defined_type
+        if isinstance(typ, ArrayType):
+            print(typ.dimens)
+            print(c)
+            return ArrayType(
+                [IntLiteral(self.evaluateIntValue(dim, c)) for dim in typ.dimens],
+                self.determineType(typ.eleType, c)
+            )
         return typ
 
     def matchType(self, lhs, rhs, c, exact_same_type=True):
@@ -114,8 +122,8 @@ class StaticChecker(BaseVisitor,Utils):
         :param type2: Type
         :return: bool
         """
-        lhs = self.determineType(lhs)
-        rhs = self.determineType(rhs)
+        lhs = self.determineType(lhs, c)
+        rhs = self.determineType(rhs, c)
         #??? What to be raised when rhs is nil
         if isinstance(rhs, StructType) and rhs.name == "":
             if isinstance(lhs, (InterfaceType, StructType)):
@@ -246,7 +254,7 @@ class StaticChecker(BaseVisitor,Utils):
             raise TypeMismatch(ast)
         return Symbol(
             ast.varName, 
-            ast.varType, 
+            self.determineType(ast.varType, c), 
             ast.varInit
         )
 
@@ -268,6 +276,12 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         self.current_func = ast
+        # Determine Type 
+        ast.params = list(map(lambda x: ParamDecl(x.parName, self.determineType(x.parType)), 
+                              ast.params
+                    ))
+        ast.retType = self.determineType(ast.retType, c)
+        
         # Redeclared Function
         if self.lookup(ast.name, c[-1], lambda x: x.name) is not None:
             raise Redeclared(Function(), ast.name)
@@ -284,6 +298,11 @@ class StaticChecker(BaseVisitor,Utils):
         :param c: list[StructType]
         :return StructType
         """
+        # Detremine type
+        print(ast.elements)
+        print(self.determineType(ast.elements[0][1], c))
+        ast.elements = list(map(lambda x: (x[0], self.determineType(x[1], c)), ast.elements))
+        
         if c and isinstance(c[0], list):
             # Redeclared Struct name
             if self.lookup(ast.name, c[-1], lambda x: x.name) is not None:
@@ -315,6 +334,12 @@ class StaticChecker(BaseVisitor,Utils):
         # Redeclared Method (Already checked in Program)
         
         self.current_func = ast.fun
+        # Determine Type
+        ast.fun.params = list(map(lambda x: ParamDecl(x.parName, self.determineType(x.parType)),
+                                ast.fun.params
+                        ))
+        ast.fun.retType = self.determineType(ast.fun.retType, c)
+        
         # Redeclared ParamDecl
         c = reduce(
             lambda acc, ele: acc[:-1] + [acc[-1] + [self.visit(ele, acc)]], 
@@ -331,6 +356,10 @@ class StaticChecker(BaseVisitor,Utils):
         :param c: list[Prototype]
         :return Prototype
         """
+        # Determine Type
+        ast.params = list(map(lambda x: self.determineType(x, c), ast.params))
+        ast.retType = self.determineType(ast.retType, c)
+        
         # Redeclared Prototype
         if self.lookup(ast.name, c, lambda x: x.name) is not None:
             raise Redeclared(Prototype(), ast.name)
@@ -342,6 +371,7 @@ class StaticChecker(BaseVisitor,Utils):
         :param c: list[InterfaceType]
         :return InterfaceType
         """
+        # TODO : detremine type
         if c and isinstance(c[0], list):
             # Redeclared Interface name
             if self.lookup(ast.name, c[-1], lambda x: x.name) is not None:
@@ -501,13 +531,11 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: FuncCall
         :param c: list[list[Symbol]] | tuple(list[list[Symbol]], is_stmt: bool)
         """
+        is_stmt = False
         if isinstance(c, tuple):
-            env = c[0]
             is_stmt = c[1]
-        else:
-            env = c
-            is_stmt = False
-            
+            c = c[0]
+
         # Undeclared Function
         func_decl = self.lookup(ast.funName, self.functions, lambda x: x.name) 
         if func_decl is None:
@@ -519,12 +547,12 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Wrong type of parameters
         wrongType = next(filter(
-            lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], env), env), 
+            lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], c), c), 
             zip(ast.args, func_decl.params)
         ), None)
         if wrongType is not None:
             raise TypeMismatch(ast)
-        retType = self.determineType(func_decl.retType)
+        retType = self.determineType(func_decl.retType, c)
         if is_stmt and not isinstance(retType, VoidType):
             raise TypeMismatch(ast)
         if not is_stmt and isinstance(retType, VoidType):
@@ -536,14 +564,13 @@ class StaticChecker(BaseVisitor,Utils):
         :param ast: MethCall
         :param c: list[list[Symbol]] | tuple(list[list[Symbol]], bool)
         """
+        is_stmt = False
         if isinstance(c, tuple):
-            env = c[0]
             is_stmt = c[1]
-        else:
-            env = c
-            is_stmt = False
+            c = c[0]
+
         # Reciver must have StructType or InterfaceType
-        receiver = self.visit(ast.receiver, env) # receiver: Type
+        receiver = self.visit(ast.receiver, c) # receiver: Type
         if not isinstance(receiver, (StructType, InterfaceType)):
             raise TypeMismatch(ast) 
         
@@ -557,12 +584,12 @@ class StaticChecker(BaseVisitor,Utils):
                 raise TypeMismatch(ast)
             # Wrong type of parameters
             wrongType = next(filter(
-                lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], env), env), 
+                lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], c), c), 
                 zip(ast.args, method_decl.fun.params)
             ), None)
             if wrongType is not None:
                 raise TypeMismatch(ast)
-            retType = self.determineType(method_decl.fun.retType)
+            retType = self.determineType(method_decl.fun.retType, c)
         else:
             prototype = self.lookup(ast.metName, receiver.methods, lambda x: x.name)
             if prototype is None:
@@ -572,12 +599,12 @@ class StaticChecker(BaseVisitor,Utils):
                 raise TypeMismatch(ast)
             # Wrong type of parameters
             wrongType = next(filter(
-                lambda pair: not self.matchType(pair[1], self.visit(pair[0], env), env), 
+                lambda pair: not self.matchType(pair[1], self.visit(pair[0], c), c), 
                 zip(ast.args, prototype.params)
             ), None)
             if wrongType is not None:
                 raise TypeMismatch(ast)
-            retType = self.determineType(prototype.retType)
+            retType = self.determineType(prototype.retType, c)
         
         if is_stmt and not isinstance(retType, VoidType):
             raise TypeMismatch(ast)
@@ -621,7 +648,7 @@ class StaticChecker(BaseVisitor,Utils):
                 arrayType.dimens[len(ast.idx):],
                 arrayType.eleType
             )
-        return self.determineType(arrayType.eleType)
+        return self.determineType(arrayType.eleType, c)
         
     def visitFieldAccess(self, ast, c): 
         """
@@ -637,7 +664,7 @@ class StaticChecker(BaseVisitor,Utils):
         field = self.lookup(ast.field, receiverType.elements, lambda x: x[0])
         if field is None:
             raise Undeclared(Field(), ast.field)
-        return self.determineType(field[1])
+        return self.determineType(field[1], c)
 
     def visitIntLiteral(self, ast, c): 
         return IntType()
