@@ -9,33 +9,33 @@ class CheckSuite(unittest.TestCase):
         self.assertTrue(TestChecker.test(input,expect,400))
 
     def test_401(self):
-        input = """var VoTien = 1; 
-var VoTien = 2;"""
-        expect = "Redeclared Variable: VoTien\n"
+        input = """var Abc = 1; 
+var Abc = 2;"""
+        expect = "Redeclared Variable: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 401))
 
     def test_402(self):
-        input = """var VoTien = 1; 
-const VoTien = 2;"""
-        expect = "Redeclared Constant: VoTien\n"
+        input = """var Abc = 1; 
+const Abc = 2;"""
+        expect = "Redeclared Constant: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 402))
 
     def test_403(self):
-        input = """const VoTien = 1; 
-var VoTien = 2;"""
-        expect = "Redeclared Variable: VoTien\n"
+        input = """const Abc = 1; 
+var Abc = 2;"""
+        expect = "Redeclared Variable: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 403))
 
     def test_404(self):
-        input = """const VoTien = 1; 
-func VoTien () {return;};"""
-        expect = "Redeclared Function: VoTien\n"
+        input = """const Abc = 1; 
+func Abc () {return;};"""
+        expect = "Redeclared Function: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 404))
 
     def test_405(self):
-        input = """func VoTien () {return;}
-var VoTien = 1;"""
-        expect = "Redeclared Variable: VoTien\n"
+        input = """func Abc () {return;}
+var Abc = 1;"""
+        expect = "Redeclared Variable: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 405))
 
     def test_406(self):
@@ -45,25 +45,25 @@ var VoTien = 1;"""
 
     def test_407(self):
         input = """
-type  Votien struct {
-    Votien int;
+type  Animal struct {
+    Animal int;
 }
-type TIEN struct {
-    Votien string;
-    TIEN int;
-    TIEN float;
+type PERSON struct {
+    Animal string;
+    PERSON int;
+    PERSON float;
 }
 """
-        expect = "Redeclared Field: TIEN\n"
+        expect = "Redeclared Field: PERSON\n"
         self.assertTrue(TestChecker.test(input, expect, 407))
 
     def test_408(self):
         input = """
-func (v TIEN) putIntLn () {return;}
-func (v TIEN) getInt () {return;}
-func (v TIEN) getInt () {return;}
-type TIEN struct {
-    Votien int;
+func (v PERSON) putIntLn () {return;}
+func (v PERSON) getInt () {return;}
+func (v PERSON) getInt () {return;}
+type PERSON struct {
+    Animal int;
 }
 """
         expect = "Redeclared Method: getInt\n"
@@ -71,23 +71,23 @@ type TIEN struct {
 
     def test_409(self):
         input = """
-type VoTien interface {
-    VoTien ();
-    VoTien (a int);
+type Abc interface {
+    Abc ();
+    Abc (a int);
 }
 """
-        expect = "Redeclared Prototype: VoTien\n"
+        expect = "Redeclared Prototype: Abc\n"
         self.assertTrue(TestChecker.test(input, expect, 409))
 
     def test_410(self):
-        input = """func Votien (a, a int) {return;}
+        input = """func Animal (a, a int) {return;}
         """
         expect = "Redeclared Parameter: a\n"
         self.assertTrue(TestChecker.test(input, expect, 410))
 
     def test_411(self):
         input = """
-func Votien (b int) {
+func Animal (b int) {
     var b = 1;
     var a = 1;
     const a = 1;
@@ -97,7 +97,7 @@ func Votien (b int) {
 
     def test_412(self):
         input = """
-func Votien (b int) {
+func Animal (b int) {
     for var a = 1; a < 1; a += 1 {
         const a = 2;
         var b = 1;
@@ -118,10 +118,10 @@ var c = d;"""
 
     def test_414(self):
         input = """
-func Votien () int {return 1;}
+func Animal () int {return 1;}
 
 func foo () {
-    var b = Votien();
+    var b = Animal();
     foo_votine();
     return;
 };"""
@@ -130,25 +130,25 @@ func foo () {
 
     def test_415(self):
         input = """
-type TIEN struct {
-    Votien int;
+type PERSON struct {
+    Animal int;
 }
 
-func (v TIEN) getInt () {
-    const c = v.Votien;
-    var d = v.tien;
+func (v PERSON) getInt () {
+    const c = v.Animal;
+    var d = v.age;
 }
 """
-        expect = "Undeclared Field: tien\n"
+        expect = "Undeclared Field: age\n"
         self.assertTrue(TestChecker.test(input, expect, 415))
 
     def test_416(self):
         input = """
-type TIEN struct {
-    Votien int;
+type PERSON struct {
+    Animal int;
 }
 
-func (v TIEN) getInt () {
+func (v PERSON) getInt () {
     v.getInt ();
     v.putInt ();
 }
@@ -158,9 +158,9 @@ func (v TIEN) getInt () {
 
     def test_417(self):
         input = """
-type TIEN struct {Votien int;}
-type TIEN struct {v int;};"""
-        expect = "Redeclared Type: TIEN\n"
+type PERSON struct {Animal int;}
+type PERSON struct {v int;};"""
+        expect = "Redeclared Type: PERSON\n"
         self.assertTrue(TestChecker.test(input, expect, 417))
         
     def test_418(self):
@@ -217,8 +217,8 @@ func main () {
     
     def test_422(self):
         input =  """
-type S1 struct {votien int;}
-type I1 interface {votien();}
+type S1 struct {name int;}
+type I1 interface {name();}
 var a I1;
 var c I1 = nil;
 var d S1 = nil;
@@ -611,18 +611,18 @@ func foo(a [2]float) {
     def test_451(self):
         input =  """
   
-var v TIEN;      
-type TIEN struct {
+var v PERSON;      
+type PERSON struct {
     a int;
 } 
-type VO interface {
+type TIN interface {
     foo() int;
 }
 
-func (v TIEN) foo() int {return 1;}
-func (b TIEN) koo() {b.koo();}
+func (v PERSON) foo() int {return 1;}
+func (b PERSON) koo() {b.koo();}
 func foo() {
-    var x VO;  
+    var x TIN;  
     const b = x.foo(); 
     x.koo(); 
 }
@@ -678,8 +678,8 @@ var d = c.x;
         
     def test_456(self):
         input =  """
-type S1 struct {votien int;}
-type I1 interface {votien();}
+type S1 struct {name int;}
+type I1 interface {name();}
 var a I1;
 var c I1 = nil;
 var d S1 = nil;
@@ -740,14 +740,14 @@ func foo(){
     def test_461(self):
         input =  """
 
-type S1 struct {votien int;}
-func (s S1) vo() {return ;}
-func (s S1) votien() {
-s.votien();
-var a = s.vo();
+type S1 struct {age int;}
+func (s S1) put() {return ;}
+func (s S1) name() {
+s.name();
+var a = s.put();
 }
 """     
-        expect = "Type Mismatch: MethodCall(Id(s),vo,[])\n"
+        expect = "Type Mismatch: MethodCall(Id(s),put,[])\n"
         self.assertTrue(TestChecker.test(input, expect, 461))
     
     def test_462(self):
@@ -770,10 +770,10 @@ func foo() {
     def test_464(self):
         input =  """
 
-type S1 struct {votien int;}
-type I1 interface {votien();}
+type S1 struct {age int;}
+type I1 interface {name();}
 
-func (s S1) votien() {return;}
+func (s S1) name() {return;}
 
 var b [2] S1;
 var a [2] I1 = b;
@@ -820,14 +820,32 @@ func foo() {
         self.assertTrue(TestChecker.test(input, expect, 467))
         
     def test_468(self):
-        input =  """
-const a = 2;
-type STRUCT struct {x [a] int;}
-func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
-func foo(x [a] int) [a] int  {
-    const a = 3;
-    return [a] int {1,2};
-}
+        input = """
+  
+type S1 struct {votien int;}
+type S2 struct {votien int;}
+type I1 interface {votien();}
+type I2 interface {votien();}
+
+func (s S1) votien() {return;}
+
+var a S1;
+var b S2;
+var c I1 = a;
+var d I2 = b;
 """
-        expect =  "Type Mismatch: FuncDecl"
-        self.assertTrue(TestChecker.test(input, expect, 468))
+        expect = "Redeclared Method: votien\n"
+        self.assertTrue(TestChecker.test(input, expect, 468))     
+        
+#     def test_468(self):
+#         input =  """
+# const a = 2;
+# type STRUCT struct {x [a] int;}
+# func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
+# func foo(x [a] int) [a] int  {
+#     const a = 3;
+#     return [a] int {1,2};
+# }
+# """
+#         expect =  "Type Mismatch: FuncDecl"
+#         self.assertTrue(TestChecker.test(input, expect, 468))

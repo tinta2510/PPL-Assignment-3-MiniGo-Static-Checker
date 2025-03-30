@@ -51,7 +51,7 @@ class StaticChecker(BaseVisitor,Utils):
         self.current_func = None # FuncDecl
     
     def check(self):
-        return self.visit(self.ast,[])
+        return self.visit(self.ast,[[]])
 
     def evaluateIntValue(self, ast, c):
         """
@@ -195,8 +195,10 @@ class StaticChecker(BaseVisitor,Utils):
             receiverType = self.lookup(methodDecl.recType.name, self.structs, lambda x: x.name)
             if receiverType is None:
                 raise Undeclared(Type(), methodDecl.recType.name) #??? Not check this case
-            # Redeclared Method
-            if self.lookup(methodDecl.fun.name, receiverType.methods, lambda y: y.fun.name) is not None:
+            # Redeclared Identifier for Method/Field
+            if (self.lookup(methodDecl.fun.name, receiverType.elements, lambda x: x[0]) or
+                self.lookup(methodDecl.fun.name, receiverType.methods, lambda x: x.fun.name)
+            ):
                 raise Redeclared(Method(), methodDecl.fun.name)
             # Add Names of Methods to StructType
             receiverType.methods = receiverType.methods + [methodDecl]
@@ -312,7 +314,7 @@ class StaticChecker(BaseVisitor,Utils):
         :return MethodDecl
         """
         # Undeclard Receiver (Already checked in Program)
-        # Redeclared Method (Already checked in Program)
+        # Redeclared Method/Field (Already checked in Program)
         
         self.current_func = ast.fun
         # Redeclared ParamDecl
