@@ -91,7 +91,7 @@ class StaticChecker(BaseVisitor,Utils):
             if ast.op == "+":
                 return bodyValue
         raise TypeMismatch(ast)
-    
+        
     def determineType(self, typ):
         """
         Determine the StructType or InterfaceType of the Id Type
@@ -100,7 +100,9 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Type
         """
         if isinstance(typ, Id):
-            user_defined_type = self.lookup(typ.name, self.structs + self.interfaces, lambda x: x.name)
+            user_defined_type = self.lookup(typ.name, 
+                                            self.structs + self.interfaces, 
+                                            lambda x: x.name)
             if user_defined_type is None:
                 raise Undeclared(Type(), typ.name) #??? Not check this case
             return user_defined_type
@@ -124,17 +126,21 @@ class StaticChecker(BaseVisitor,Utils):
             if isinstance(lhs, InterfaceType) and isinstance(rhs, StructType):
                 # the struct type implements all prototypes declared in the interface
                 for prototype in lhs.methods:
-                    method_decl = self.lookup(prototype.name, rhs.methods, lambda x: x.fun.name)
+                    method_decl = self.lookup(
+                        prototype.name, rhs.methods, lambda x: x.fun.name)
                     if method_decl is None:
                         return False
-                    if not self.matchType(prototype.retType, method_decl.fun.retType, c):
+                    if not self.matchType(prototype.retType, 
+                                          method_decl.fun.retType, c):
                         return False
                     if len(prototype.params) != len(method_decl.fun.params):
                         return False
                     wrongType = next(filter(
-                                    lambda pair: not self.matchType(pair[0], pair[1].parType, c), 
-                                    zip(prototype.params, method_decl.fun.params)
-                                ), None)
+                            lambda pair: not self.matchType(pair[0], pair[1].parType, c), 
+                            zip(prototype.params, method_decl.fun.params)
+                        ), 
+                        None
+                    )
                     if wrongType is not None:
                         return False
                     return True
@@ -144,25 +150,37 @@ class StaticChecker(BaseVisitor,Utils):
                 if len(lhs.dimens) != len(rhs.dimens):
                     return False
                 # Compare the size of each dimension
-                wrongDimen = next(filter(
-                    lambda pair: self.evaluateIntValue(pair[0], c) != self.evaluateIntValue(pair[1], c),
-                    zip(lhs.dimens, rhs.dimens)                
-                ), None)
-                if isinstance(lhs.eleType, FloatType) and isinstance(rhs.eleType, IntType):
+                wrongDimen = next(
+                    filter(
+                        lambda pair: (self.evaluateIntValue(pair[0], c) 
+                                      != self.evaluateIntValue(pair[1], c)),
+                        zip(lhs.dimens, rhs.dimens)                
+                    ), 
+                    None
+                )
+                if (isinstance(lhs.eleType, FloatType) 
+                    and isinstance(rhs.eleType, IntType)
+                ):
                     return not wrongDimen
                 return not wrongDimen and self.matchType(lhs.eleType, rhs.eleType, c)
-        if isinstance(lhs, (StructType, InterfaceType)) and isinstance(rhs, (StructType, InterfaceType)):
+        if (isinstance(lhs, (StructType, InterfaceType)) 
+            and isinstance(rhs, (StructType, InterfaceType))
+        ):
             return lhs.name == rhs.name
         if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
             # Compare the length of dimensions
             if len(lhs.dimens) != len(rhs.dimens):
                 return False
             # Compare the size of each dimension
-            wrongDimen = next(filter(
-                lambda pair: self.evaluateIntValue(pair[0], c) != self.evaluateIntValue(pair[1], c),
-                zip(lhs.dimens, rhs.dimens)                
-            ), None)
-            return not wrongDimen and self.matchType(lhs.eleType, rhs.eleType, c) #??? exact_same_type = False | True
+            wrongDimen = next(
+                filter(
+                    lambda pair: (self.evaluateIntValue(pair[0], c) 
+                                  != self.evaluateIntValue(pair[1], c)),
+                    zip(lhs.dimens, rhs.dimens)                
+                ), 
+                None
+            )
+            return not wrongDimen and self.matchType(lhs.eleType, rhs.eleType, c) 
         return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
@@ -184,7 +202,10 @@ class StaticChecker(BaseVisitor,Utils):
         )
         
         ## Get FuncDecl list (Get all functions, but not check redecalred) (Predefined Functions)
-        self.functions = self.builtin_funcs + list(filter(lambda x: isinstance(x, FuncDecl), ast.decl)) 
+        self.functions = (
+            self.builtin_funcs 
+            + list(filter(lambda x: isinstance(x, FuncDecl), ast.decl))
+        ) 
                         
         ## Predefined Methods
         def preVisitMethodDecl(methodDecl):
@@ -192,12 +213,16 @@ class StaticChecker(BaseVisitor,Utils):
             :param methodDecl: MethodDecl
             """
             # Undeclared Receiver
-            receiverType = self.lookup(methodDecl.recType.name, self.structs, lambda x: x.name)
+            receiverType = self.lookup(methodDecl.recType.name, 
+                                       self.structs, 
+                                       lambda x: x.name)
             if receiverType is None:
                 raise Undeclared(Type(), methodDecl.recType.name) #??? Not check this case
             # Redeclared Identifier for Method/Field
-            if (self.lookup(methodDecl.fun.name, receiverType.elements, lambda x: x[0]) or
-                self.lookup(methodDecl.fun.name, receiverType.methods, lambda x: x.fun.name)
+            if (self.lookup(methodDecl.fun.name, 
+                            receiverType.elements, lambda x: x[0]) 
+                or self.lookup(methodDecl.fun.name, 
+                               receiverType.methods, lambda x: x.fun.name)
             ):
                 raise Redeclared(Method(), methodDecl.fun.name)
             # Add Names of Methods to StructType
@@ -210,7 +235,7 @@ class StaticChecker(BaseVisitor,Utils):
         
         # Loop through FuncDecl, VarDecl, ConstDecl, MethodDecl
         c = reduce(
-            lambda acc, ele: (acc[:-1] + [acc[-1] + [result]] )
+            lambda acc, ele: (acc[:-1] + [acc[-1] + [result]])
                 if (result := self.visit(ele, acc)) is not None 
                 else acc,
             self.builtin_funcs + ast.decl,
@@ -225,7 +250,7 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         # Redeclared ParamDecl
-        if self.lookup(ast.parName, c[-1], lambda x: x.name) is not None:
+        if self.lookup(ast.parName, c[-1], lambda x: x.name):
             raise Redeclared(Parameter(), ast.parName)
         return Symbol(ast.parName, ast.parType, None)
 
@@ -236,21 +261,18 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         # Redeclared Variable
-        if self.lookup(ast.varName, c[-1], lambda x: x.name) is not None:
+        if self.lookup(ast.varName, c[-1], lambda x: x.name):
             raise Redeclared(Variable(), ast.varName) 
         # Type Mismatch
-        varInitType = self.visit(ast.varInit, c) if ast.varInit is not None else None
-        if ast.varType is None:
+        varInitType = self.visit(ast.varInit, c) if ast.varInit else None
+        if not ast.varType:
             ast.varType = varInitType # varType and varInit cannot be both None due to syntax rule
-        elif (varInitType is not None and 
-            not self.matchType(ast.varType, varInitType, c, exact_same_type=False)
+        elif (varInitType 
+              and not self.matchType(ast.varType, varInitType, 
+                                     c, exact_same_type=False)
         ):
             raise TypeMismatch(ast)
-        return Symbol(
-            ast.varName, 
-            ast.varType, 
-            ast.varInit
-        )
+        return Symbol(ast.varName, ast.varType, ast.varInit)
 
     def visitConstDecl(self, ast, c):
         """
@@ -259,7 +281,8 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         try:
-            return self.visit(VarDecl(ast.conName, ast.conType, ast.iniExpr), c)
+            return self.visit(VarDecl(ast.conName, ast.conType, ast.iniExpr), 
+                              c)
         except Redeclared as e:
             raise Redeclared(Constant(), ast.conName)
    
@@ -657,7 +680,7 @@ class StaticChecker(BaseVisitor,Utils):
     def visitArrayLiteral(self, ast, c):
         def checkElements(ele, c):
             """
-            :param ele: NestedList = Union[PrimLit, List['NestedList']]
+            :param ele: NestedList = Union[PrimLit, List["NestedList"]]
             """
             if isinstance(ele, list):
                 [checkElements(e, c) for e in ele]
