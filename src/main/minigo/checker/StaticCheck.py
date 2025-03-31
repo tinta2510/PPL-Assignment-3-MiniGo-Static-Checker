@@ -250,7 +250,7 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         # Redeclared ParamDecl
-        if self.lookup(ast.parName, c[-1], lambda x: x.name):
+        if self.lookup(ast.parName, c[-1], lambda x: x.name) is not None:
             raise Redeclared(Parameter(), ast.parName)
         return Symbol(ast.parName, ast.parType, None)
 
@@ -261,13 +261,13 @@ class StaticChecker(BaseVisitor,Utils):
         :return: Symbol
         """
         # Redeclared Variable
-        if self.lookup(ast.varName, c[-1], lambda x: x.name):
+        if self.lookup(ast.varName, c[-1], lambda x: x.name) is not None:
             raise Redeclared(Variable(), ast.varName) 
         # Type Mismatch
-        varInitType = self.visit(ast.varInit, c) if ast.varInit else None
-        if not ast.varType:
+        varInitType = self.visit(ast.varInit, c) if ast.varInit is not None else None
+        if ast.varType is None:
             ast.varType = varInitType # varType and varInit cannot be both None due to syntax rule
-        elif (varInitType 
+        elif (varInitType is not None
               and not self.matchType(ast.varType, varInitType, 
                                      c, exact_same_type=False)
         ):
