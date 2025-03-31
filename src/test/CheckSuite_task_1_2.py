@@ -30,7 +30,6 @@ var VoTien = 2;
     
     def test_004(self):
         """
-
 const VoTien = 1; 
 func VoTien () {return;}
         
@@ -40,7 +39,6 @@ func VoTien () {return;}
     
     def test_005(self):
         """
- 
 func VoTien () {return;}
 var VoTien = 1;
         
@@ -50,7 +48,6 @@ var VoTien = 1;
 
     def test_006(self):
         """
- 
 var getInt = 1;
         
         """
@@ -59,7 +56,6 @@ var getInt = 1;
 
     def test_007(self):
         """
- 
 type  Votien struct {
     Votien int;
 }
@@ -75,7 +71,6 @@ type TIEN struct {
 
     def test_008(self):
         """
- 
 func (v TIEN) putIntLn () {return;}
 func (v TIEN) getInt () {return;}
 func (v TIEN) getInt () {return;}
@@ -89,7 +84,6 @@ type TIEN struct {
         
     def test_009(self):
         """
- 
 type VoTien interface {
     VoTien ();
     VoTien (a int);
@@ -101,7 +95,6 @@ type VoTien interface {
         
     def test_010(self):
         """
- 
 func Votien (a, a int) {return;}
         
         """
@@ -110,7 +103,6 @@ func Votien (a, a int) {return;}
         
     def test_011(self):
         """
- 
 func Votien (b int) {
     var b = 1;
     var a = 1;
@@ -123,7 +115,6 @@ func Votien (b int) {
     
     def test_012(self):
         """
- 
 func Votien (b int) {
     for var a = 1; a < 1; a += 1 {
         const a = 2;
@@ -136,7 +127,6 @@ func Votien (b int) {
     
     def test_013(self):
         """
- 
 var a = 1;
 var b = a;
 var c = d;
@@ -147,7 +137,6 @@ var c = d;
         
     def test_014(self):
         """
- 
 func Votien () int {return 1;}
 
 func foo () {
@@ -162,7 +151,6 @@ func foo () {
         
     def test_015(self):
         """
- 
 type TIEN struct {
     Votien int;
 }
@@ -178,7 +166,6 @@ func (v TIEN) getInt () {
         
     def test_016(self):
         """
- 
 type TIEN struct {
     Votien int;
 }
@@ -194,7 +181,6 @@ func (v TIEN) getInt () {
         
     def test_017(self):
         """
- 
 type TIEN struct {Votien int;}
 type TIEN struct {v int;}
         
@@ -202,7 +188,7 @@ type TIEN struct {v int;}
         input = Program([StructType("TIEN",[("Votien",IntType())],[]),StructType("TIEN",[("v",IntType())],[])])
         self.assertTrue(TestChecker.test(input, "Redeclared Type: TIEN\n", inspect.stack()[0].function))
     
-    def test_068(self):
+    def test_018(self):
         input = """
 var v TIEN;
 const b = v.foo();        
@@ -218,7 +204,7 @@ const d = v.zoo();
         expect = "Undeclared Method: zoo\n"
         self.assertTrue(TestChecker.test(input, expect, inspect.stack()[0].function))
 
-    def test_069(self):
+    def test_019(self):
         input = """
 type S1 struct {votien int;}
 func (s S1) votien() int {
@@ -229,7 +215,7 @@ return 1;
         expect = "Type Mismatch: MethodCall(Id(s),votien,[])\n"
         self.assertTrue(TestChecker.test(input, expect, inspect.stack()[0].function))
         
-    def test_070(self):
+    def test_020(self):
         input = """
 var a = 1 + 2.0;
 var b = 1 + 1;
@@ -241,7 +227,7 @@ func foo() int {
         expect = "Type Mismatch: Return(Id(a))\n"
         self.assertTrue(TestChecker.test(input, expect, inspect.stack()[0].function))
 
-    def test_078(self):
+    def test_021(self):
         input = """
   
 type S1 struct {votien int;}
@@ -257,4 +243,53 @@ var c I1 = a;
 var d I2 = b;
 """
         expect = "Type Mismatch: VarDecl(d,Id(I2),Id(b))\n"
-        self.assertTrue(TestChecker.test(input, expect, inspect.stack()[0].function))     
+        self.assertTrue(TestChecker.test(input, expect, inspect.stack()[0].function))  
+
+    def test_022(self):
+        input =  """
+func foo() {
+    var a [5][6] int;
+    var b [2] float;
+    b[2] := a[2][3]
+    a[2][3] := b[2] + 1;
+}
+        """
+        self.assertTrue(TestChecker.test(input, """Type Mismatch: Assign(ArrayCell(Id("a"),[IntLiteral(2),IntLiteral(3)]),BinaryOp("+", ArrayCell(Id("b"),[IntLiteral(2)]), IntLiteral(1)))""", inspect.stack()[0].function)) 
+
+    def test_023(self):
+        input =  """
+type S1 struct {votien int;}
+type I1 interface {votien();}
+
+func (s S1) votien() {return;}
+
+var b [2] S1;
+var a [2] I1 = b;
+        """
+        self.assertTrue(TestChecker.test(input, """Type Mismatch: VarDecl("a",ArrayType([IntLiteral(2)],Id("I1")),Id("b"))""", inspect.stack()[0].function)) 
+
+    def test_024(self):
+        input =  """
+var a [1 + 9] int;
+var b [10] int = a;
+        """
+        self.assertTrue(TestChecker.test(input, """""", inspect.stack()[0].function)) 
+
+    def test_025(self):
+        input =  """
+var A = 1;
+type A struct {a int;}
+        """
+        self.assertTrue(TestChecker.test(input, """Redeclared Type: A""", inspect.stack()[0].function)) 
+
+    def test_026(self):
+        input =  """
+var a TIEN;
+func foo() TIEN {
+    return a;
+    return TIEN;
+}
+
+type TIEN struct {tien int;}
+        """
+        self.assertTrue(TestChecker.test(input, """Undeclared Identifier: TIEN""", inspect.stack()[0].function))

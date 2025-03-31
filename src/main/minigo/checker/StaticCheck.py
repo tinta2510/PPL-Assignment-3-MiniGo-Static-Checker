@@ -102,7 +102,7 @@ class StaticChecker(BaseVisitor,Utils):
         if isinstance(typ, Id):
             user_defined_type = self.lookup(typ.name, self.structs + self.interfaces, lambda x: x.name)
             if user_defined_type is None:
-                raise Undeclared(Type(), typ.name)
+                raise Undeclared(Type(), typ.name) #??? Not check this case
             return user_defined_type
         return typ
 
@@ -633,7 +633,8 @@ class StaticChecker(BaseVisitor,Utils):
         receiverType = self.visit(ast.receiver, c) # receiver: Type
         if not isinstance(receiverType, StructType):
             raise TypeMismatch(ast) 
-        #??? Undeclared StrucType receiver
+        #??? Undeclared StrucType receiver: 
+        # Already checked in visitId because ast.receiver is Expr
         
         # Undeclared Field
         field = self.lookup(ast.field, receiverType.elements, lambda x: x[0])
@@ -666,6 +667,23 @@ class StaticChecker(BaseVisitor,Utils):
         return ArrayType(ast.dimens, ast.eleType)
     
     def visitStructLiteral(self, ast, c):  
+        receiverType = self.lookup(ast.name, self.structs, lambda x: x.name)
+        # Undeclared StructType
+        if receiverType is None:
+            raise Undeclared(Type(), ast.name) #??? Not check this case
+        
+        # Check if all elements are declared in the struct #??? Need to check this case?
+        print(receiverType.elements)
+        print(ast.elements)
+        undeclaredField = next(
+            filter(
+                lambda element: self.lookup(element[0], receiverType.elements, lambda x: x[0]) is None,
+                ast.elements),
+            None
+        )
+        if undeclaredField:
+            raise Undeclared(Field(), undeclaredField[0])
+        
         # Check all initialized fields (Undeclared or not)
         [self.visit(element[1], c) for element in ast.elements]
         return Id(ast.name)
