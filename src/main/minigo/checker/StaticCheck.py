@@ -673,8 +673,6 @@ class StaticChecker(BaseVisitor,Utils):
             raise Undeclared(Type(), ast.name) #??? Not check this case
         
         # Check if all elements are declared in the struct #??? Need to check this case?
-        print(receiverType.elements)
-        print(ast.elements)
         undeclaredField = next(
             filter(
                 lambda element: self.lookup(element[0], receiverType.elements, lambda x: x[0]) is None,
