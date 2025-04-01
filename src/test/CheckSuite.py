@@ -854,6 +854,19 @@ var d I2 = b;
         expect = "Type Mismatch: VarDecl(d,Id(I2),Id(b))\n"
         self.assertTrue(TestChecker.test(input, expect, 469))  
         
+    def test_470(self):
+        input = """
+func main() {
+    for i := 0; i < 10; c += 1 {
+        var c = 5
+        i += 1 
+    }
+}
+"""
+        expect = "Undeclared Identifier: c\n"
+        self.assertTrue(TestChecker.test(input, expect, 470))
+
+        
 #     def test_468(self):
 #         input =  """
 # const a = 2;

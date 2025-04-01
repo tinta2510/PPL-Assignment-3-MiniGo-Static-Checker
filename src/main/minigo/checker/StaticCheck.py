@@ -397,10 +397,7 @@ class StaticChecker(BaseVisitor,Utils):
         # Redeclared Variable, Type Mismatch in Init and Update
         try:
             cond = If(ast.cond, Continue(), Break())
-            block = Block([ast.init, cond] +
-                        ast.loop.member + 
-                        [ast.upda]
-                    )
+            block = Block([ast.init, cond, ast.upda] + ast.loop.member)
             self.visit(block, c)
         except TypeMismatch as e:
             if e.err == cond:
@@ -420,8 +417,8 @@ class StaticChecker(BaseVisitor,Utils):
             [
                 Assign(Id(ast.idx.name), IntLiteral(0)),
                 Assign(Id(ast.value.name), ArrayCell(ast.arr, [IntLiteral(0)]))
-            ] + 
-            ast.loop.member
+            ] 
+            + ast.loop.member
         )
         self.visit(block, c)
 
