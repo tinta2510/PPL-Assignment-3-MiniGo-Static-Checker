@@ -135,13 +135,8 @@ class StaticChecker(BaseVisitor,Utils):
                         return False
                     if len(prototype.params) != len(method_decl.fun.params):
                         return False
-                    wrongType = next(filter(
-                            lambda pair: not self.matchType(pair[0], pair[1].parType, c), 
-                            zip(prototype.params, method_decl.fun.params)
-                        ), 
-                        None
-                    )
-                    if wrongType is not None:
+                    if not all(self.matchType(pair[0], pair[1].parType, c) 
+                                for pair in zip(prototype.params, method_decl.fun.params)):
                         return False
                     return True
             if isinstance(lhs, FloatType) and isinstance(rhs, IntType):
@@ -150,19 +145,17 @@ class StaticChecker(BaseVisitor,Utils):
                 if len(lhs.dimens) != len(rhs.dimens):
                     return False
                 # Compare the size of each dimension
-                wrongDimen = next(
-                    filter(
-                        lambda pair: (self.evaluateIntValue(pair[0], c) 
-                                      != self.evaluateIntValue(pair[1], c)),
-                        zip(lhs.dimens, rhs.dimens)                
-                    ), 
-                    None
+                matchingDimens = all(
+                    self.evaluateIntValue(pair[0], c) == self.evaluateIntValue(pair[1], c) 
+                        for pair in zip(lhs.dimens, rhs.dimens)
                 )
-                if (isinstance(lhs.eleType, FloatType) 
-                    and isinstance(rhs.eleType, IntType)
-                ):
-                    return not wrongDimen
-                return not wrongDimen and self.matchType(lhs.eleType, rhs.eleType, c)
+                return (
+                    matchingDimens 
+                    and ((isinstance(lhs.eleType, FloatType) 
+                            and isinstance(rhs.eleType, IntType))
+                        or self.matchType(lhs.eleType, rhs.eleType, c)
+                    )
+                )
         if (isinstance(lhs, (StructType, InterfaceType)) 
             and isinstance(rhs, (StructType, InterfaceType))
         ):
@@ -172,15 +165,11 @@ class StaticChecker(BaseVisitor,Utils):
             if len(lhs.dimens) != len(rhs.dimens):
                 return False
             # Compare the size of each dimension
-            wrongDimen = next(
-                filter(
-                    lambda pair: (self.evaluateIntValue(pair[0], c) 
-                                  != self.evaluateIntValue(pair[1], c)),
-                    zip(lhs.dimens, rhs.dimens)                
-                ), 
-                None
+            matchingDimens = all(
+                self.evaluateIntValue(pair[0], c) == self.evaluateIntValue(pair[1], c) 
+                    for pair in zip(lhs.dimens, rhs.dimens)
             )
-            return not wrongDimen and self.matchType(lhs.eleType, rhs.eleType, c) 
+            return matchingDimens and self.matchType(lhs.eleType, rhs.eleType, c)
         return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
@@ -540,11 +529,8 @@ class StaticChecker(BaseVisitor,Utils):
             raise TypeMismatch(ast)
         
         # Wrong type of parameters
-        wrongType = next(filter(
-            lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], env), env), 
-            zip(ast.args, func_decl.params)
-        ), None)
-        if wrongType is not None:
+        if not all(self.matchType(pair[1].parType, self.visit(pair[0], env), env) 
+                    for pair in zip(ast.args, func_decl.params)):
             raise TypeMismatch(ast)
         retType = self.determineType(func_decl.retType)
         if is_stmt and not isinstance(retType, VoidType):
@@ -578,11 +564,8 @@ class StaticChecker(BaseVisitor,Utils):
             if len(ast.args) != len(method_decl.fun.params):
                 raise TypeMismatch(ast)
             # Wrong type of parameters
-            wrongType = next(filter(
-                lambda pair: not self.matchType(pair[1].parType, self.visit(pair[0], env), env), 
-                zip(ast.args, method_decl.fun.params)
-            ), None)
-            if wrongType is not None:
+            if not all(self.matchType(pair[1].parType, self.visit(pair[0], env), env) 
+                        for pair in zip(ast.args, method_decl.fun.params)):
                 raise TypeMismatch(ast)
             retType = self.determineType(method_decl.fun.retType)
         else:
@@ -593,11 +576,8 @@ class StaticChecker(BaseVisitor,Utils):
             if len(ast.args) != len(prototype.params):
                 raise TypeMismatch(ast)
             # Wrong type of parameters
-            wrongType = next(filter(
-                lambda pair: not self.matchType(pair[1], self.visit(pair[0], env), env), 
-                zip(ast.args, prototype.params)
-            ), None)
-            if wrongType is not None:
+            if not all(self.matchType(pair[1], self.visit(pair[0], env), env) 
+                        for pair in zip(ast.args, prototype.params)):
                 raise TypeMismatch(ast)
             retType = self.determineType(prototype.retType)
         
@@ -633,8 +613,7 @@ class StaticChecker(BaseVisitor,Utils):
         arrayType = self.visit(ast.arr, c)
         if not isinstance(arrayType, ArrayType):
             raise TypeMismatch(ast)
-        checkIdx = next(filter(lambda x: not isinstance(self.visit(x, c), IntType), ast.idx), None)
-        if checkIdx is not None:
+        if not all(isinstance(self.visit(x, c), IntType) for x in ast.idx):
             raise TypeMismatch(ast)
         if len(arrayType.dimens) < len(ast.idx):
             raise TypeMismatch(ast)

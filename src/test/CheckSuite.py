@@ -122,10 +122,10 @@ func Animal () int {return 1;}
 
 func foo () {
     var b = Animal();
-    foo_votine();
+    foo_A();
     return;
 };"""
-        expect = "Undeclared Function: foo_votine\n"
+        expect = "Undeclared Function: foo_A\n"
         self.assertTrue(TestChecker.test(input, expect, 414))
 
     def test_415(self):
@@ -822,18 +822,18 @@ func foo() {
     def test_468(self):
         input = """
   
-type S1 struct {votien int;}
-type S2 struct {votien int;}
-type I1 interface {votien();}
-type I2 interface {votien();}
+type S1 struct {abcd int;}
+type S2 struct {abcd int;}
+type I1 interface {abcd();}
+type I2 interface {abcd();}
 
-func (s S1) votien() {return;}
+func (s S1) abcd() {return;}
 
 var a S1;
 var b S2;
 var c I1 = a;
 """
-        expect = "Redeclared Method: votien\n"
+        expect = "Redeclared Method: abcd\n"
         self.assertTrue(TestChecker.test(input, expect, 468))     
         
     def test_469(self):
@@ -841,10 +841,10 @@ var c I1 = a;
   
 type S1 struct {name int;}
 type S2 struct {name int;}
-type I1 interface {votien();}
-type I2 interface {votien();}
+type I1 interface {abcd();}
+type I2 interface {abcd();}
 
-func (s S1) votien() {return;}
+func (s S1) abcd() {return;}
 
 var a S1;
 var b S2;
@@ -865,7 +865,22 @@ func main() {
 """
         expect = "Undeclared Identifier: c\n"
         self.assertTrue(TestChecker.test(input, expect, 470))
+        
+    def test_471(self):
+        input = """
+type Person struct {
+    name string
+}        
 
+func (p Person) getName(a int) {}
+
+func main() {
+    var p Person;
+    p.getName(10.0)
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(p),getName,[FloatLiteral(10.0)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 471))
         
 #     def test_468(self):
 #         input =  """
