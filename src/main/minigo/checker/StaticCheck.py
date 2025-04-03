@@ -141,21 +141,6 @@ class StaticChecker(BaseVisitor,Utils):
                     return True
             if isinstance(lhs, FloatType) and isinstance(rhs, IntType):
                 return True
-            if isinstance(lhs, ArrayType) and isinstance(rhs, ArrayType):
-                if len(lhs.dimens) != len(rhs.dimens):
-                    return False
-                # Compare the size of each dimension
-                matchingDimens = all(
-                    self.evaluateIntValue(pair[0], c) == self.evaluateIntValue(pair[1], c) 
-                        for pair in zip(lhs.dimens, rhs.dimens)
-                )
-                return (
-                    matchingDimens 
-                    and ((isinstance(lhs.eleType, FloatType) 
-                            and isinstance(rhs.eleType, IntType))
-                        or self.matchType(lhs.eleType, rhs.eleType, c)
-                    )
-                )
         if (isinstance(lhs, (StructType, InterfaceType)) 
             and isinstance(rhs, (StructType, InterfaceType))
         ):
@@ -169,7 +154,16 @@ class StaticChecker(BaseVisitor,Utils):
                 self.evaluateIntValue(pair[0], c) == self.evaluateIntValue(pair[1], c) 
                     for pair in zip(lhs.dimens, rhs.dimens)
             )
-            return matchingDimens and self.matchType(lhs.eleType, rhs.eleType, c)
+            return (
+                matchingDimens 
+                and ((
+                        not exact_same_type 
+                        and isinstance(lhs.eleType, FloatType) 
+                        and isinstance(rhs.eleType, IntType)
+                    )
+                    or self.matchType(lhs.eleType, rhs.eleType, c)
+                )
+            )
         return type(lhs) == type(rhs)
 
     def visitProgram(self, ast , c):
@@ -333,7 +327,7 @@ class StaticChecker(BaseVisitor,Utils):
         c = reduce(
             lambda acc, ele: acc[:-1] + [acc[-1] + [self.visit(ele, acc)]], 
             ast.fun.params, 
-            c + [[Symbol(ast.receiver, ast.recType, None)]]
+            c + [[Symbol(ast.receiver, ast.recType, None)]] + [[]]
         )
         # Redeclared in Block
         self.visit(ast.fun.body, c)

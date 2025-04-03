@@ -174,7 +174,7 @@ func (p Person) getAge (p string) int {
     return p.age;
 }
 """
-        expect = "Redeclared Parameter: p\n"
+        expect = "Type Mismatch: FieldAccess(Id(p),age)\n"
         self.assertTrue(TestChecker.test(input, expect, 418))
         
     def test_419(self):
@@ -881,6 +881,80 @@ func main() {
 """
         expect = "Type Mismatch: MethodCall(Id(p),getName,[FloatLiteral(10.0)])\n"
         self.assertTrue(TestChecker.test(input, expect, 471))
+        
+    def test_472(self):
+        input = """
+var b [3]int = [3]int{1, 2, 3}
+var a [3]float = b
+var c [3]float = [3]string{1.0, 2.0, 3.0}
+"""
+        expect = "Type Mismatch: VarDecl(c,ArrayType(FloatType,[IntLiteral(3)]),ArrayLiteral([IntLiteral(3)],StringType,[FloatLiteral(1.0),FloatLiteral(2.0),FloatLiteral(3.0)]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 472))
+    
+    def test_473(self):
+        input = """
+type TIEN struct {
+    Votien int;
+}
+func (v TIEN) foo (v int) {return;}
+func foo () {return;}
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 473))
+    
+    def test_474(self):
+        input ="""
+func foo() {
+    a := 1;
+    var a = 1;
+}
+"""
+        expect = "Redeclared Variable: a\n"
+        self.assertTrue(TestChecker.test(input, expect, 474))
+
+    def test_475(self):
+        input = """
+func Votien (b int) {
+    for var a = 1; c < 1; a += c {
+        const c = 2;
+    }
+}
+        """
+        self.assertTrue(TestChecker.test(input, """Undeclared Identifier: c\n""", 475)) 
+        
+    def test_476(self):
+        input = """
+var v TIEN;
+func (v TIEN) foo (v int) int {
+    return v;
+}
+
+type TIEN struct {
+    Votien int;
+}
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 476))
+        
+    def test_477(self):
+        input = """
+func foo(){
+    for var i int = 1; a < 10; i := 1.0 {
+        var a = 1;
+    }
+}
+"""
+        expect = "Undeclared Identifier: a\n"
+        self.assertTrue(TestChecker.test(input, expect, 477))
+        
+    def test_478(self):
+        input = """
+type putLn struct {
+    name int;
+}
+"""
+        expect = "Redeclared Type: putLn\n"
+        self.assertTrue(TestChecker.test(input, expect, 478))
         
 #     def test_468(self):
 #         input =  """
