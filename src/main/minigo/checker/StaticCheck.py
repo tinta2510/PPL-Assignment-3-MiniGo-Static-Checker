@@ -64,7 +64,7 @@ class StaticChecker(BaseVisitor,Utils):
             all_symbols = reduce(lambda acc, ele: ele + acc, c, [])
             id_symbol = self.lookup(ast.name, all_symbols, lambda x: x.name)
             if not isinstance(id_symbol.mtype, IntType):
-                raise TypeMismatch(ast)
+                raise TypeMismatch(ast) #???
             # Assume that symbol is declared as Constant
             return self.evaluateIntValue(id_symbol.value, c)
         if isinstance(ast, BinaryOp):
@@ -90,7 +90,7 @@ class StaticChecker(BaseVisitor,Utils):
                 return -bodyValue
             if ast.op == "+":
                 return bodyValue
-        raise TypeMismatch(ast)
+        raise TypeMismatch(ast) #???
         
     def determineType(self, typ):
         """
@@ -611,7 +611,7 @@ class StaticChecker(BaseVisitor,Utils):
             raise TypeMismatch(ast)
         if len(arrayType.dimens) < len(ast.idx):
             raise TypeMismatch(ast)
-        elif len(arrayType.dimens) > len(ast.idx):
+        if len(arrayType.dimens) > len(ast.idx):
             return ArrayType(
                 arrayType.dimens[len(ast.idx):],
                 arrayType.eleType

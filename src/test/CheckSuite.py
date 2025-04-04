@@ -893,10 +893,10 @@ var c [3]float = [3]string{1.0, 2.0, 3.0}
     
     def test_473(self):
         input = """
-type TIEN struct {
-    Votien int;
+type EFG struct {
+    Abc int;
 }
-func (v TIEN) foo (v int) {return;}
+func (v EFG) foo (v int) {return;}
 func foo () {return;}
 """
         expect = ""
@@ -914,7 +914,7 @@ func foo() {
 
     def test_475(self):
         input = """
-func Votien (b int) {
+func Abc (b int) {
     for var a = 1; c < 1; a += c {
         const c = 2;
     }
@@ -924,13 +924,13 @@ func Votien (b int) {
         
     def test_476(self):
         input = """
-var v TIEN;
-func (v TIEN) foo (v int) int {
+var v EFG;
+func (v EFG) foo (v int) int {
     return v;
 }
 
-type TIEN struct {
-    Votien int;
+type EFG struct {
+    Abc int;
 }
 """
         expect = ""
@@ -955,6 +955,45 @@ type putLn struct {
 """
         expect = "Redeclared Type: putLn\n"
         self.assertTrue(TestChecker.test(input, expect, 478))
+        
+    def test_479(self):
+        input = """
+var a int; 
+type b struct {c int;}; 
+func (x b) a() {
+    putLn();
+}; 
+func (x b) c() {
+    return;
+};
+"""
+        expect = "Redeclared Method: c\n"
+        self.assertTrue(TestChecker.test(input, expect, 479))
+        
+    def test_480(self):
+        input = """
+var a int; 
+func main() {
+    a := a + "str";
+}
+"""
+        expect = "Type Mismatch: BinaryOp(Id(a),+,StringLiteral(\"str\"))\n"
+        self.assertTrue(TestChecker.test(input, expect, 480))
+        
+    def test_481(self):
+        input = """
+var a int; 
+var b int; 
+var c int; 
+func main() {
+    for a,b := range c {
+        putLn();
+    }    
+}
+"""
+        expect = "Type Mismatch: ForEach(Id(a),Id(b),Id(c),Block([FuncCall(putLn,[])]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 481))
+    
         
 #     def test_468(self):
 #         input =  """
