@@ -993,17 +993,85 @@ func main() {
 """
         expect = "Type Mismatch: ForEach(Id(a),Id(b),Id(c),Block([FuncCall(putLn,[])]))\n"
         self.assertTrue(TestChecker.test(input, expect, 481))
-    
+
+    def test_482(self):
+        input = """
+func (v TIEN) VO () {return ;}
+func (v TIEN) Tien () {return ;}
+type TIEN struct {
+    Votien int;
+    Tien int;
+}
+"""     
+        expect = """Redeclared Field: Tien\n"""
+        self.assertTrue(TestChecker.test(input, expect, 482))
         
-#     def test_468(self):
-#         input =  """
-# const a = 2;
-# type STRUCT struct {x [a] int;}
-# func (s STRUCT) foo(x [a] int) [a] int {return s.x;}
-# func foo(x [a] int) [a] int  {
-#     const a = 3;
-#     return [a] int {1,2};
-# }
-# """
-#         expect =  "Type Mismatch: FuncDecl"
-#         self.assertTrue(TestChecker.test(input, expect, 468))
+    def test_483(self):
+        input = """
+func foo(a int) {
+    foo(1);
+    var foo = 1;
+    foo(2); // error
+}
+    """
+        self.assertTrue(TestChecker.test(input, """Undeclared Function: foo\n""", 483)) 
+    
+    def test_484(self):
+        input = """
+func (p Person) printName() string{
+    return p.name;
+}
+       
+type Person struct {
+    name string;
+    age int;
+}
+
+func (p Person) printName() {
+    return;
+}
+"""
+        expect = "Redeclared Method: printName\n"
+        self.assertTrue(TestChecker.test(input, expect, 484))
+        
+    def test_485(self):
+        input = """
+func (p Person) printName() string{
+    return p.name;
+}
+       
+type Person struct {
+    name string;
+    printName int;
+}
+"""
+        expect = "Redeclared Field: printName\n"
+        self.assertTrue(TestChecker.test(input, expect, 485))
+    
+    def test_486(self):
+        input = """
+type Person struct {
+    name string;
+    printName int;
+}
+
+func (p Person) printName() string{
+    return p.name;
+}
+"""
+        expect = "Redeclared Method: printName\n"
+        self.assertTrue(TestChecker.test(input, expect, 486))
+    
+    def test_487(self):
+        input = """
+type Person struct {
+    name string;
+    age int;
+    name Person;
+}
+func (p Person) name() string {
+    return p.name;
+}
+"""
+        expect = "Redeclared Field: name\n"
+        self.assertTrue(TestChecker.test(input, expect, 487))

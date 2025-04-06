@@ -201,13 +201,8 @@ class StaticChecker(BaseVisitor,Utils):
                                        lambda x: x.name)
             if receiverType is None:
                 raise Undeclared(Type(), methodDecl.recType.name) #??? Not check this case
-            # Redeclared Identifier for Method/Field
-            if (self.lookup(methodDecl.fun.name, 
-                            receiverType.elements, lambda x: x[0]) 
-                or self.lookup(methodDecl.fun.name, 
-                               receiverType.methods, lambda x: x.fun.name)
-            ):
-                raise Redeclared(Method(), methodDecl.fun.name)
+            # Redeclared Identifier for Method/Field (check in next step in visitProgram) 
+            
             # Add Names of Methods to StructType
             receiverType.methods = receiverType.methods + [methodDecl]
         list(map(
@@ -215,6 +210,34 @@ class StaticChecker(BaseVisitor,Utils):
             filter(lambda x: isinstance(x, MethodDecl), ast.decl)
         ))
         
+        # Check Redeclared Identifier for Method/Field in Struct
+        def checkRedeclaredInStruct(dict_struct, decl):
+            """
+            :param dict_struct: dict[str, list[str]] \n
+                + dict_struct = {structName: [fieldName, methodName, ...]}\n
+                + dict_stuct is a dict where each key is a struct name and
+                each value is a list of field/method names
+            :param decl: StructType | MethodDecl
+            """
+            if isinstance(decl, StructType):
+                def visitElement(ele, c):
+                    if ele[0] in c:
+                        raise Redeclared(Field(), ele[0])
+                    return c + [ele[0]]
+                dict_struct[decl.name] = reduce(
+                    lambda acc, ele: visitElement(ele, acc), 
+                    decl.elements, dict_struct[decl.name]
+                )
+            else: # isinstance(decl, MethodDecl)
+                if decl.fun.name in dict_struct[decl.recType.name]:
+                    raise Redeclared(Method(), decl.fun.name)
+                dict_struct[decl.recType.name] = dict_struct[decl.recType.name] + [decl.fun.name]
+            return dict_struct
+        reduce(
+            checkRedeclaredInStruct, 
+            filter(lambda x: isinstance(x, (StructType, MethodDecl)), ast.decl),
+            {key: [] for key in map(lambda structType: structType.name, self.structs)}
+        )
         
         # Loop through FuncDecl, VarDecl, ConstDecl, MethodDecl
         c = reduce(
@@ -301,16 +324,7 @@ class StaticChecker(BaseVisitor,Utils):
             if self.lookup(ast.name, c, lambda x: x.name) is not None:
                 raise Redeclared(Type(), ast.name)
 
-        # Redeclared Field
-        def visitElement(element_name, c):
-            """
-            :param element_name: str
-            :param c: list[str]
-            """
-            if self.lookup(element_name, c, lambda x: x) is not None:
-                raise Redeclared(Field(), element_name)
-            return element_name
-        reduce(lambda acc, ele: acc + [visitElement(ele, acc)], [e[0] for e in ast.elements], [])
+        # Redeclared Field/Method (Already checked in Program)
         return ast
 
     def visitMethodDecl(self, ast, c):
@@ -514,8 +528,14 @@ class StaticChecker(BaseVisitor,Utils):
             is_stmt = False
             
         # Undeclared Function
+        ## Function has not yet been defined
         func_decl = self.lookup(ast.funName, self.functions, lambda x: x.name) 
         if func_decl is None:
+            raise Undeclared(Function(), ast.funName)
+        ## Function is hidden due to the redclared identifier in local scope
+        all_symbols = reduce(lambda acc, ele: ele + acc, env[1:], [])
+        symbol = self.lookup(ast.funName, all_symbols, lambda x: x.name)
+        if symbol is not None:
             raise Undeclared(Function(), ast.funName)
         
         # Wrong number of parameters
