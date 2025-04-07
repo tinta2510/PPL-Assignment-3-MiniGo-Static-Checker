@@ -1003,18 +1003,15 @@ type TIEN struct {
     Tien int;
 }
 """     
-        expect = """Redeclared Field: Tien\n"""
+        expect = """Redeclared Method: Tien\n"""
         self.assertTrue(TestChecker.test(input, expect, 482))
         
     def test_483(self):
         input = """
-func foo(a int) {
-    foo(1);
-    var foo = 1;
-    foo(2); // error
-}
+var a int = 10
+var c int = "Tin"
     """
-        self.assertTrue(TestChecker.test(input, """Undeclared Function: foo\n""", 483)) 
+        self.assertTrue(TestChecker.test(input, """Type Mismatch: VarDecl(c,IntType,StringLiteral("Tin"))\n""", 483)) 
     
     def test_484(self):
         input = """
@@ -1045,7 +1042,7 @@ type Person struct {
     printName int;
 }
 """
-        expect = "Redeclared Field: printName\n"
+        expect = "Redeclared Method: printName\n"
         self.assertTrue(TestChecker.test(input, expect, 485))
     
     def test_486(self):
@@ -1075,3 +1072,30 @@ func (p Person) name() string {
 """
         expect = "Redeclared Field: name\n"
         self.assertTrue(TestChecker.test(input, expect, 487))
+        
+    def test_488(self):
+        input = """
+        type Person struct {
+            name string
+        }
+        func (p Person) getName(p string) string {
+            return p.name;
+        }
+        """
+        expect = "Type Mismatch: FieldAccess(Id(p),name)\n"
+        self.assertTrue(TestChecker.test(input, expect, 488))
+        
+    def test_489(self):
+        input = """
+func foo(a int) {
+
+      foo(1);
+
+      var foo = 1;
+
+      foo(2); // error
+
+ }
+"""
+        expect = "Undeclared Function: foo\n"
+        self.assertTrue(TestChecker.test(input, expect, 489))

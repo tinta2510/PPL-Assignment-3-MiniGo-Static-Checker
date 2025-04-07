@@ -201,7 +201,13 @@ class StaticChecker(BaseVisitor,Utils):
                                        lambda x: x.name)
             if receiverType is None:
                 raise Undeclared(Type(), methodDecl.recType.name) #??? Not check this case
-            # Redeclared Identifier for Method/Field (check in next step in visitProgram) 
+            # Redeclared Identifier for Method/Field
+            if (self.lookup(methodDecl.fun.name, 
+                            receiverType.elements, lambda x: x[0]) 
+                or self.lookup(methodDecl.fun.name, 
+                               receiverType.methods, lambda x: x.fun.name)
+            ):
+                raise Redeclared(Method(), methodDecl.fun.name)
             
             # Add Names of Methods to StructType
             receiverType.methods = receiverType.methods + [methodDecl]
@@ -209,35 +215,6 @@ class StaticChecker(BaseVisitor,Utils):
             lambda x: preVisitMethodDecl(x), 
             filter(lambda x: isinstance(x, MethodDecl), ast.decl)
         ))
-        
-        # Check Redeclared Identifier for Method/Field in Struct
-        def checkRedeclaredInStruct(dict_struct, decl):
-            """
-            :param dict_struct: dict[str, list[str]] \n
-                + dict_struct = {structName: [fieldName, methodName, ...]}\n
-                + dict_stuct is a dict where each key is a struct name and
-                each value is a list of field/method names
-            :param decl: StructType | MethodDecl
-            """
-            if isinstance(decl, StructType):
-                def visitElement(ele, c):
-                    if ele[0] in c:
-                        raise Redeclared(Field(), ele[0])
-                    return c + [ele[0]]
-                dict_struct[decl.name] = reduce(
-                    lambda acc, ele: visitElement(ele, acc), 
-                    decl.elements, dict_struct[decl.name]
-                )
-            else: # isinstance(decl, MethodDecl)
-                if decl.fun.name in dict_struct[decl.recType.name]:
-                    raise Redeclared(Method(), decl.fun.name)
-                dict_struct[decl.recType.name] = dict_struct[decl.recType.name] + [decl.fun.name]
-            return dict_struct
-        reduce(
-            checkRedeclaredInStruct, 
-            filter(lambda x: isinstance(x, (StructType, MethodDecl)), ast.decl),
-            {key: [] for key in map(lambda structType: structType.name, self.structs)}
-        )
         
         # Loop through FuncDecl, VarDecl, ConstDecl, MethodDecl
         c = reduce(
@@ -324,7 +301,16 @@ class StaticChecker(BaseVisitor,Utils):
             if self.lookup(ast.name, c, lambda x: x.name) is not None:
                 raise Redeclared(Type(), ast.name)
 
-        # Redeclared Field/Method (Already checked in Program)
+        # Redeclared Field
+        def visitElement(element_name, c):
+            """
+            :param element_name: str
+            :param c: list[str]
+            """
+            if self.lookup(element_name, c, lambda x: x) is not None:
+                raise Redeclared(Field(), element_name)
+            return element_name
+        reduce(lambda acc, ele: acc + [visitElement(ele, acc)], [e[0] for e in ast.elements], [])
         return ast
 
     def visitMethodDecl(self, ast, c):
@@ -419,7 +405,7 @@ class StaticChecker(BaseVisitor,Utils):
         )
         self.visit(block, c)
 
-    def visitBlock(self, ast, c) -> None:
+    def visitBlock(self, ast, c):
         """
         :param ast: Block
         :param c: list[list[Symbol]]
@@ -688,7 +674,9 @@ class StaticChecker(BaseVisitor,Utils):
         # Check if all elements are declared in the struct #??? Need to check this case?
         undeclaredField = next(
             filter(
-                lambda element: self.lookup(element[0], receiverType.elements, lambda x: x[0]) is None,
+                lambda element: 
+                    self.lookup(element[0], receiverType.elements, lambda x: x[0]) 
+                    is None,
                 ast.elements),
             None
         )
