@@ -4,972 +4,967 @@ from AST import *
 
 class CheckSuite(unittest.TestCase):
     def test_400(self):
-        input = """var a int; var b int; var a int; """
-        expect = "Redeclared Variable: a\n"
-        self.assertTrue(TestChecker.test(input,expect,400))
+        input = """
+var x int
+var x int
+"""
+        expect = "Redeclared Variable: x\n"
+        self.assertTrue(TestChecker.test(input, expect, 400))
 
     def test_401(self):
-        input = """var Abc = 1; 
-var Abc = 2;"""
-        expect = "Redeclared Variable: Abc\n"
+        input = """
+const c = 5
+const c = 10
+"""
+        expect = "Redeclared Constant: c\n"
         self.assertTrue(TestChecker.test(input, expect, 401))
 
     def test_402(self):
-        input = """var Abc = 1; 
-const Abc = 2;"""
-        expect = "Redeclared Constant: Abc\n"
+        input = """
+var a = 1
+func a() {return;}
+"""
+        expect = "Redeclared Function: a\n"
         self.assertTrue(TestChecker.test(input, expect, 402))
 
     def test_403(self):
-        input = """const Abc = 1; 
-var Abc = 2;"""
-        expect = "Redeclared Variable: Abc\n"
+        input = """
+func test() { 
+    var x = 1
+    var x = 2
+}
+"""
+        expect = "Redeclared Variable: x\n"
         self.assertTrue(TestChecker.test(input, expect, 403))
 
     def test_404(self):
-        input = """const Abc = 1; 
-func Abc () {return;};"""
-        expect = "Redeclared Function: Abc\n"
+        input = """
+var y = x
+"""
+        expect = "Undeclared Identifier: x\n"
         self.assertTrue(TestChecker.test(input, expect, 404))
 
     def test_405(self):
-        input = """func Abc () {return;}
-var Abc = 1;"""
-        expect = "Redeclared Variable: Abc\n"
+        input = """
+func main() { 
+    unknown()
+}
+"""
+        expect = "Undeclared Function: unknown\n"
         self.assertTrue(TestChecker.test(input, expect, 405))
 
     def test_406(self):
-        input = """var getInt = 1;"""
-        expect = "Redeclared Variable: getInt\n"
+        input = """
+var a int = "hello"
+"""
+        expect = """Type Mismatch: VarDecl(a,IntType,StringLiteral("hello"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 406))
 
     def test_407(self):
         input = """
-type  Animal struct {
-    Animal int;
-}
-type PERSON struct {
-    Animal string;
-    PERSON int;
-    PERSON float;
+func foo() int { 
+    return "text"
 }
 """
-        expect = "Redeclared Field: PERSON\n"
+        expect = """Type Mismatch: Return(StringLiteral("text"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 407))
 
     def test_408(self):
         input = """
-func (v PERSON) putIntLn () {return;}
-func (v PERSON) getInt () {return;}
-func (v PERSON) getInt () {return;}
-type PERSON struct {
-    Animal int;
+type T struct { 
+    x int
+    x string
 }
 """
-        expect = "Redeclared Method: getInt\n"
+        expect = "Redeclared Field: x\n"
         self.assertTrue(TestChecker.test(input, expect, 408))
 
     def test_409(self):
         input = """
-type Abc interface {
-    Abc ();
-    Abc (a int);
+func main() { 
+    var a = 1 + "two"
 }
 """
-        expect = "Redeclared Prototype: Abc\n"
+        expect = """Type Mismatch: BinaryOp(IntLiteral(1),+,StringLiteral("two"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 409))
 
     def test_410(self):
-        input = """func Animal (a, a int) {return;}
-        """
-        expect = "Redeclared Parameter: a\n"
+        input = """
+var a = 1
+func main() {
+    a := "string"
+    b := a + 2
+}
+"""
+        expect = """Type Mismatch: Assign(Id(a),StringLiteral("string"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 410))
 
     def test_411(self):
         input = """
-func Animal (b int) {
-    var b = 1;
-    var a = 1;
-    const a = 1;
-};"""
-        expect = "Redeclared Constant: a\n"
+type S struct {
+    x int
+}
+var s = S{}
+var y = s.y
+"""
+        expect = "Undeclared Field: y\n"
         self.assertTrue(TestChecker.test(input, expect, 411))
 
     def test_412(self):
         input = """
-func Animal (b int) {
-    for var a = 1; a < 1; a += 1 {
-        const a = 2;
-        var b = 1;
-        const b = 1;
-    }
+func foo(x int) {
+    x := "redeclared"
 }
 """
-        expect = "Redeclared Constant: a\n"
+        expect = """Type Mismatch: Assign(Id(x),StringLiteral("redeclared"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 412))
 
     def test_413(self):
         input = """
-var a = 1;
-var b = a;
-var c = d;"""
-        expect = "Undeclared Identifier: d\n"
+type I interface {
+    get()
+}
+type S struct {
+    val int
+}
+var i = S{name: "Tin"}
+"""
+        expect = "Undeclared Field: name\n"
         self.assertTrue(TestChecker.test(input, expect, 413))
 
     def test_414(self):
         input = """
-func Animal () int {return 1;}
-
-func foo () {
-    var b = Animal();
-    foo_A();
-    return;
-};"""
-        expect = "Undeclared Function: foo_A\n"
+func main() {
+    arr := [2]int{1, 2}
+    var x string
+    x := arr[2]
+}
+"""
+        expect = "Type Mismatch: Assign(Id(x),ArrayCell(Id(arr),[IntLiteral(2)]))\n"
         self.assertTrue(TestChecker.test(input, expect, 414))
 
     def test_415(self):
         input = """
-type PERSON struct {
-    Animal int;
+type S struct {
+    x int
 }
-
-func (v PERSON) getInt () {
-    const c = v.Animal;
-    var d = v.age;
+func (s S) x() {
+    return
 }
 """
-        expect = "Undeclared Field: age\n"
+        expect = "Redeclared Method: x\n"
         self.assertTrue(TestChecker.test(input, expect, 415))
 
     def test_416(self):
         input = """
-type PERSON struct {
-    Animal int;
-}
-
-func (v PERSON) getInt () {
-    v.getInt ();
-    v.putInt ();
+func main() {
+    a := 0
+    for a := 1; a < 5; a += "step" {
+        putLn()
+    }
 }
 """
-        expect = "Undeclared Method: putInt\n"
+        expect = """Type Mismatch: BinaryOp(Id(a),+,StringLiteral("step"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 416))
 
     def test_417(self):
         input = """
-type PERSON struct {Animal int;}
-type PERSON struct {v int;};"""
-        expect = "Redeclared Type: PERSON\n"
+const a = 1
+func a() {
+    const a = 2
+    a := 3
+}
+"""
+        expect = "Redeclared Function: a\n"
         self.assertTrue(TestChecker.test(input, expect, 417))
-        
+
     def test_418(self):
         input = """
-type Person struct {
-    name string;
-    age int;
+type S struct {
+    field int
 }
-
-func (p Person) getAge (p string) int {
-    return p.age;
+func (s S) get() int {
+    return s.field
+}
+func main() {
+    s := S{}
+    s.get(1)
 }
 """
-        expect = "Type Mismatch: FieldAccess(Id(p),age)\n"
+        expect = "Type Mismatch: MethodCall(Id(s),get,[IntLiteral(1)])\n"
         self.assertTrue(TestChecker.test(input, expect, 418))
-        
+
     def test_419(self):
         input = """
-func main () {
-    arr := [1]int{1, 2, 3};
-    for idx, val := range arr {
-        var idx = 1;
-        var val = 2;
+var arr = [2]int{}
+var x = arr[1] + arr
+"""
+        expect = "Type Mismatch: BinaryOp(ArrayCell(Id(arr),[IntLiteral(1)]),+,Id(arr))\n"
+        self.assertTrue(TestChecker.test(input, expect, 419))
+
+    def test_420(self):
+        input = """
+type A interface {
+    foo()
+}
+type A struct {
+    x int
+}
+"""
+        expect = "Redeclared Type: A\n"
+        self.assertTrue(TestChecker.test(input, expect, 420))
+
+    def test_421(self):
+        input = """
+func foo() int {
+    return
+}
+func main() {
+    foo()
+}
+"""
+        expect = "Type Mismatch: Return()\n"
+        self.assertTrue(TestChecker.test(input, expect, 421))
+
+    def test_422(self):
+        input = """
+type S struct {
+    x int
+}
+func (s S) set(x int) {
+    s.x := x
+}
+func main() {
+    s := S{}
+    s.set("wrong")
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(s),set,[StringLiteral(\"wrong\")])\n"
+        self.assertTrue(TestChecker.test(input, expect, 422))
+
+    def test_423(self):
+        input = """
+func main() {
+    for i, v := range 5 {
+        i := 1
     }
 }
 """
-        expect = "Redeclared Variable: idx\n"
-        self.assertTrue(TestChecker.test(input, expect, 419))
-        
-    def test_420(self):
-        input = """
-    const a = 2;
-    func foo () {
-        const a = 1;
-        for var b = 1; b < 1; b += 2 {
-            const b = 1;
-        }
-    }
-    """
-        expect = "Redeclared Constant: b\n"
-        self.assertTrue(TestChecker.test(input, expect, 420))
-        
-    def test_421(self):
-        input = """
-    func foo () {
-        const a = 1;
-        for a, b := range [3]int {1, 2, 3} {
-            var b = 1;
-        }
-    }
-    """
-        expect = "Redeclared Variable: b\n"
-        self.assertTrue(TestChecker.test(input, expect, 421))
-    
-    def test_422(self):
-        input =  """
-type S1 struct {name int;}
-type I1 interface {name();}
-var a I1;
-var c I1 = nil;
-var d S1 = nil;
-"""
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 422))
-        
-    def test_423(self):
-        input = """
-    func putIntLn() {return;}
-    """
-        expect = "Redeclared Function: putIntLn\n"
+        expect = "Type Mismatch: ForEach(Id(i),Id(v),IntLiteral(5),Block([Assign(Id(i),IntLiteral(1))]))\n"
         self.assertTrue(TestChecker.test(input, expect, 423))
 
     def test_424(self):
         input = """
-type Person struct {
-    name string;
-    age int;
+type I interface {
+    get() int
 }
-
-func main () {
-    var p int;
-    p.getAge();
+func main() {
+    var i I
+    i.get("param")
 }
 """
-        expect = "Type Mismatch: MethodCall(Id(p),getAge,[])\n"
+        expect = "Type Mismatch: MethodCall(Id(i),get,[StringLiteral(\"param\")])\n"
         self.assertTrue(TestChecker.test(input, expect, 424))
-        
+
     def test_425(self):
         input = """
-func main() {
-    var a int;
-    var b = a + "Tin";
-}
+var a = [2]int{1, 2}
+var b = a
 """
-        expect = """Type Mismatch: BinaryOp(Id(a),+,StringLiteral("Tin"))\n"""
+        expect = ""
         self.assertTrue(TestChecker.test(input, expect, 425))
 
     def test_426(self):
         input = """
+type S struct {
+    x int
+}
 func main() {
-    var a int;
-    var b = a + 1.2;
-    var c = a % b;
+    s := 5
+    s.x := 5
 }
 """
-        expect = """Type Mismatch: BinaryOp(Id(a),%,Id(b))\n"""
+        expect = "Type Mismatch: FieldAccess(Id(s),x)\n"
         self.assertTrue(TestChecker.test(input, expect, 426))
-        
+
     def test_427(self):
-        """Test Return type match"""
         input = """
-func foo() int {
-    return;
+func foo(a int, b float) {
+    foo(1)
 }
 """
-        expect = "Type Mismatch: Return()\n"
+        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1)])\n"
         self.assertTrue(TestChecker.test(input, expect, 427))
-        
+
     def test_428(self):
-        """Test Return type match"""
         input = """
+type S struct {
+    val int
+}
+func (s S) get() S {
+    return s
+}
 func main() {
-    return 10;
+    s := S{}
+    x := s.get().val + s.get()
 }
 """
-        expect = "Type Mismatch: Return(IntLiteral(10))\n"
+        expect = "Type Mismatch: BinaryOp(FieldAccess(MethodCall(Id(s),get,[]),val),+,MethodCall(Id(s),get,[]))\n"
         self.assertTrue(TestChecker.test(input, expect, 428))
-        
+
     def test_429(self):
-        """Test return type of call statement"""
         input = """
-func foo() int {
-    return 1;
-}
-func main() {
-    foo();
-}
+const n = 2
+var a = [n]int{1, 2}
+var b = [3]int{1, 2, 3}
 """
-        expect = "Type Mismatch: FuncCall(foo,[])\n"
+        expect = ""
         self.assertTrue(TestChecker.test(input, expect, 429))
-        
-        
+
     def test_430(self):
-        """Invalid func_call"""
         input = """
-func f(a int, b float) int {
-    return 10;
-}
-
 func main() {
-    f(1, 2);
+    x := 1
+    x := "reassign"
 }
 """
-        expect = "Type Mismatch: FuncCall(f,[IntLiteral(1),IntLiteral(2)])\n"
+        expect = """Type Mismatch: Assign(Id(x),StringLiteral("reassign"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 430))
-        
+
     def test_431(self):
-        """Invalid method call"""
         input = """
-type Person struct {
-    name string;
-    age int;
+type S struct {
+    a int
+    b string
 }
-
-func (p Person) getAge () int {
-    return p.age;
-}
-
-func main() {
-    var p Person;
-    p.getAge(1);
-}
+var s = S{a: 1, c: "test"}
 """
-        expect = "Type Mismatch: MethodCall(Id(p),getAge,[IntLiteral(1)])\n"
+        expect = "Undeclared Field: c\n"
         self.assertTrue(TestChecker.test(input, expect, 431))
-        
+
     def test_432(self):
-        """Invalid builtins function call"""
         input = """
-func main() {
-    var a = getInt(1);
+func foo() {
+    return
+}
+func foo(x int) {
+    return
 }
 """
-        expect = "Type Mismatch: FuncCall(getInt,[IntLiteral(1)])\n"
+        expect = "Redeclared Function: foo\n"
         self.assertTrue(TestChecker.test(input, expect, 432))
-        
+
     def test_433(self):
-        """Invalid function call"""
         input = """
-type Person struct {
-    name string;
-    age int;
+type I interface {
+    get() int
 }
-
-type Animal struct {}
-
-func printInfo(p Person) {
-    return;
+type S struct {
+    val int
 }
-func main() {
-    var a Animal;
-    printInfo(a);
+func (s S) get() string {
+    return "wrong"
 }
-"""     
-        expect = "Type Mismatch: FuncCall(printInfo,[Id(a)])\n"
+var i I = S{}
+"""
+        expect = "Type Mismatch: VarDecl(i,Id(I),StructLiteral(S,[]))\n"
         self.assertTrue(TestChecker.test(input, expect, 433))
-        
+
     def test_434(self):
-        """Invalid method call"""
         input = """
-type Person struct {
-    name string;
-    age int;
-}
-
-func (p Person) compareAge (p2 Person) boolean {
-    return p.age > p2.age;
-}
-
-type Animal struct {
-    age int;
-    name string;
-}
-
 func main() {
-    var a Animal;
-    var b Person;
-    b.compareAge(a);
+    arr := [2][3]int{{1, 2, 3}, {4, 5, 6}}
+    var x [3][2]int
+    x := arr
 }
 """
-        expect = "Type Mismatch: MethodCall(Id(b),compareAge,[Id(a)])\n"
+        expect = "Type Mismatch: Assign(Id(x),Id(arr))\n"
         self.assertTrue(TestChecker.test(input, expect, 434))
 
     def test_435(self):
-        """ A call statement must invoke a function/method with a return type of VoidType"""
         input = """
-func foo() int {
-    return 1;
+type S struct {
+    x int
 }
 func main() {
-    foo();
+    s := S{}
+    s.y := 5
 }
 """
-        expect = "Type Mismatch: FuncCall(foo,[])\n"
+        expect = "Undeclared Field: y\n"
         self.assertTrue(TestChecker.test(input, expect, 435))
-        
+
     def test_436(self):
-        """The number of arguments in the call must match the number of parameters in
- the function/method definition"""
         input = """
-func foo(a int, b float) int {
-    return 10;
-}
-
 func main() {
-    foo(1, 2, 3);
+    a := [2]int{1, 2}
+    for i := 0; i < "end"; i += 1 {
+        putLn()
+    }
 }
 """
-        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1),IntLiteral(2),IntLiteral(3)])\n"
+        expect = """Type Mismatch: BinaryOp(Id(i),<,StringLiteral("end"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 436))
-        
+
     def test_437(self):
-        """Each argument must have the exact same type as its
- corresponding parameter. """
         input = """
-func foo(a int, b string) {
-    return;
-}
+var x = 1
 func main() {
-    foo(1, 2.0);
+    const x = 2
+    for x := 3; x + 5; x += 1 {
+        putLn()
+    }
 }
 """
-        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1),FloatLiteral(2.0)])\n"
+        expect = """Type Mismatch: For(Assign(Id(x),IntLiteral(3)),BinaryOp(Id(x),+,IntLiteral(5)),Assign(Id(x),BinaryOp(Id(x),+,IntLiteral(1))),Block([FuncCall(putLn,[])]))\n"""
         self.assertTrue(TestChecker.test(input, expect, 437))
-        
+
     def test_438(self):
-        """"Each argument must have the exact same type as its
- corresponding parameter. """
         input = """
-type Person struct {
-    name string;
-    age int;
+type S struct {
+    val int
 }
-
-type Animal struct {
-    species string;
-    age int;
+func (s S) set(v int) int {
+    return v
 }
-
-func printInfo(p Person) {
-    return;
-}
-
 func main() {
-    var a Animal;
-    var b Person;
-    printInfo(b);
-    printInfo(a);
+    s := S{}
+    s.set()
 }
 """
-        expect = "Type Mismatch: FuncCall(printInfo,[Id(a)])\n"
+        expect = "Type Mismatch: MethodCall(Id(s),set,[])\n"
         self.assertTrue(TestChecker.test(input, expect, 438))
-        
-    def test_439(self):
-        """Initialized an undeclared scalar by assignment"""
-        input = """
-var b int = 1;
-func main() {
-    a := 10;
-    const a = 20;
-}
-"""
-        expect = "Redeclared Constant: a\n"
-        self.assertTrue(TestChecker.test(input, expect, 439))
-        
-    def test_440(self):
-        """ if the LHS has an interface type, the RHS may have a struct type, provided that the struct type implements all prototypes declared in the interface."""
-        input = """
-type Foo interface {
-    foo();
-}
-type Bar struct {}
 
-func main() {
-    var a Foo = Bar{};
-}
-"""
-        expect = "Type Mismatch: VarDecl(a,Id(Foo),StructLiteral(Bar,[]))\n"
-        self.assertTrue(TestChecker.test(input, expect, 440))
-    
-    def test_441(self):
-        """Array Literal"""
+    def test_439(self):
         input = """
-var a = [1][2]float{{1, 2, 3}, {4, 5, 6}};
-func main() {
-    a := [1][2]float{{1.0, 2.0}, {3.0, 4.0}};
-    a := [2][3]int{143, 213, 3}
+var a = 10.0
+var b int = a
+"""
+        expect = "Type Mismatch: VarDecl(b,IntType,Id(a))\n"
+        self.assertTrue(TestChecker.test(input, expect, 439))
+
+    def test_440(self):
+        input = """
+type S struct {
+    x int
+}
+type S struct {
+    y string
+}
+var s = S{x: 1}
+"""
+        expect = "Redeclared Type: S\n"
+        self.assertTrue(TestChecker.test(input, expect, 440))
+
+    def test_441(self):
+        input = """
+func foo() string {
+    return 42
 }
 """
-        expect = "Type Mismatch: Assign(Id(a),ArrayLiteral([IntLiteral(2),IntLiteral(3)],IntType,[IntLiteral(143),IntLiteral(213),IntLiteral(3)]))\n"
+        expect = """Type Mismatch: Return(IntLiteral(42))\n"""
         self.assertTrue(TestChecker.test(input, expect, 441))
 
     def test_442(self):
-        """ if the LHS has an interface type, the RHS may have a struct type, provided that the struct type implements all prototypes declared in the interface."""
         input = """
-type Foo interface {
-    foo();
+type I interface {
+    set(x int)
 }
-type Bar struct {
-    a int;
-}
-
-func (b Bar) foo() {
-    return;
-}
-
 func main() {
-    var a Foo = Bar{};
+    var i I
+    i.set(1, 2)
 }
 """
-        expect = ""
+        expect = "Type Mismatch: MethodCall(Id(i),set,[IntLiteral(1),IntLiteral(2)])\n"
         self.assertTrue(TestChecker.test(input, expect, 442))
-        
+
     def test_443(self):
         input = """
-func main () {
-    arr := 10;
-    for idx, val := range arr {
-        var idx = 1;
-        var val = 2;
+func main() {
+    arr := [2]int{1, 2}
+    for i, v := range arr {
+        v := "redeclared"
     }
 }
 """
-        expect = "Type Mismatch: ForEach(Id(idx),Id(val),Id(arr),Block([VarDecl(idx,IntLiteral(1)),VarDecl(val,IntLiteral(2))]))\n"
+        expect = """Type Mismatch: Assign(Id(v),StringLiteral("redeclared"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 443))
-        
+
     def test_444(self):
         input = """
-var A int;
-func (a A) b(x int) {
-    return;
+type S struct {
+    x int
 }
-type A struct{
-    attr int;
+func (s S) get() int {
+    return s.x
+}
+func main() {
+    s := 5
+    s.get()
 }
 """
-        expect = "Redeclared Type: A\n"
+        expect = "Type Mismatch: MethodCall(Id(s),get,[])\n"
         self.assertTrue(TestChecker.test(input, expect, 444))
-    
+
     def test_445(self):
         input = """
-const a = 2; 
-const b = 1 + a;
-var c [b]int = [2]int {1,2};
+const size = 2
+const size_2 = size + 1
+var a = [size]int{1, 2}
+var b = [size_2]int{1, 2, 3}
+func main() {
+    a := b
+}
 """
-        expect = "Type Mismatch: VarDecl(c,ArrayType(IntType,[Id(b)]),ArrayLiteral([IntLiteral(2)],IntType,[IntLiteral(1),IntLiteral(2)]))\n"
+        expect = "Type Mismatch: Assign(Id(a),Id(b))\n"
         self.assertTrue(TestChecker.test(input, expect, 445))
-        
+
     def test_446(self):
         input = """
-const a = 2; 
-const b = 1 + a;
-var c [b]int = [3]int {1,2};
-"""
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 446))
-    
-    def test_447(self):
-        input =  """
-const v = 3;
-const a = v + v;
-const f = a * 2 + a;
-var b [f]int;
-var c [18]int = b;
-"""
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 447)) 
-        
-    def test_448(self):
-        input =  """
-const v = 3;
-const a = v + v;
-const f = a * 2 + a + 10;
-var b [f]int;
-var c [18]int = b;
-"""
-        expect = "Type Mismatch: VarDecl(c,ArrayType(IntType,[IntLiteral(18)]),Id(b))\n"
-        self.assertTrue(TestChecker.test(input, expect, 448)) 
-    
-    def test_449(self):
-        input =  """
-func foo(a [2]float) {
-    foo([2]float{1.0,2.0})
-    foo([2]int{1,2})
+type S struct {
+    x int
 }
-        """
-        expect = """Type Mismatch: FuncCall(foo,[ArrayLiteral([IntLiteral(2)],IntType,[IntLiteral(1),IntLiteral(2)])])\n"""
-        self.assertTrue(TestChecker.test(input, expect, 449)) 
+func (s S) x() int {
+    return s.x
+}
+func (s S) x(y int) {
+    return
+}
+"""
+        expect = "Redeclared Method: x\n"
+        self.assertTrue(TestChecker.test(input, expect, 446))
+
+    def test_447(self):
+        input = """
+func main() {
+    x := 1
+    y := x > "compare"
+}
+"""
+        expect = """Type Mismatch: BinaryOp(Id(x),>,StringLiteral("compare"))\n"""
+        self.assertTrue(TestChecker.test(input, expect, 447))
+
+    def test_448(self):
+        input = """
+type I interface {
+    foo()
+}
+type S struct {
+    x int
+}
+func (s S) foo() {
+    return
+}
+var i I = S{}
+var x = i + 1
+"""
+        expect = "Type Mismatch: BinaryOp(Id(i),+,IntLiteral(1))\n"
+        self.assertTrue(TestChecker.test(input, expect, 448))
+
+    def test_449(self):
+        input = """
+func main() {
+    arr := [2][2]int{{1, 2}, {3, 4}}
+    x := arr[1]
+    y := x[0] + x
+}
+"""
+        expect = "Type Mismatch: BinaryOp(ArrayCell(Id(x),[IntLiteral(0)]),+,Id(x))\n"
+        self.assertTrue(TestChecker.test(input, expect, 449))
         
     def test_450(self):
-        input =  """
-    type A interface {foo();}
-    const A = 2;
-        """
-        expect = "Redeclared Constant: A\n"
+        input = """
+func main() {
+    x := 1
+    y := x()
+}
+"""
+        expect = "Undeclared Function: x\n"
         self.assertTrue(TestChecker.test(input, expect, 450))
 
     def test_451(self):
-        input =  """
-  
-var v PERSON;      
-type PERSON struct {
-    a int;
-} 
-type TIN interface {
-    foo() int;
+        input = """
+type S struct {
+    x int
 }
-
-func (v PERSON) foo() int {return 1;}
-func (b PERSON) koo() {b.koo();}
-func foo() {
-    var x TIN;  
-    const b = x.foo(); 
-    x.koo(); 
+var s = S{}
+func main() {
+    s.x := "wrong"
 }
 """
-        expect = "Undeclared Method: koo\n" #???
+        expect = """Type Mismatch: Assign(FieldAccess(Id(s),x),StringLiteral("wrong"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 451))
-        
-    def test_452(self):
-        input =  """
-type S1 struct {v int; t int;}
 
-var a = S1 {v : 1, t: 2}
-var b S1 = a;
-var c int = b;
+    def test_452(self):
+        input = """
+type Inner struct {
+    val int
+}
+type Outer struct {
+    inner Inner
+    inner string
+}
 """
-        expect = "Type Mismatch: VarDecl(c,IntType,Id(b))\n"
+        expect = "Redeclared Field: inner\n"
         self.assertTrue(TestChecker.test(input, expect, 452))
-        
+
     def test_453(self):
-        input =  """
-var a [2][3] int;
-var b = a[1];
-var c [3] int = b;
-var d [3] string = b;
+        input = """
+type I interface {
+    get() int
+}
+type S struct {
+    x int
+}
+func (s S) get() int {
+    return s.x
+}
+var i I = S{}
+var x = i.get().val
 """
-        expect = "Type Mismatch: VarDecl(d,ArrayType(StringType,[IntLiteral(3)]),Id(b))\n"
+        expect = "Type Mismatch: FieldAccess(MethodCall(Id(i),get,[]),val)\n"
         self.assertTrue(TestChecker.test(input, expect, 453))
-        
+
     def test_454(self):
-        input =  """
-type S1 struct {v int; x S1;}
-var b S1;
-var c = b.x.v;
-var d = c.x;
+        input = """
+func main() {
+    arr := [2]int{1, 2}
+    arr[0] := "invalid"
+}
 """
-        expect = "Type Mismatch: FieldAccess(Id(c),x)\n"
+        expect = """Type Mismatch: Assign(ArrayCell(Id(arr),[IntLiteral(0)]),StringLiteral("invalid"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 454))
 
     def test_455(self):
-        input =  """
-type S1 struct {v int; x S1;}
-
-func (s S1) getX() S1 {
-    return s.x;
+        input = """
+type S struct {
+    name string
 }
-
-var b S1;
-var c = b.getX().v;
-var d = c.x;
+func (s S) name() string {
+    return s.name
+}
+func (s S) name(x int) {
+    return
+}
 """
-        expect = "Type Mismatch: FieldAccess(Id(c),x)\n"
+        expect = "Redeclared Method: name\n"
         self.assertTrue(TestChecker.test(input, expect, 455))
-        
+
     def test_456(self):
-        input =  """
-type S1 struct {name int;}
-type I1 interface {name();}
-var a I1;
-var c I1 = nil;
-var d S1 = nil;
-func foo(){
-    c := a;
-    a := nil;
+        input = """
+func main() {
+    x := 1
+    if (x) {
+        putLn()
+    }
 }
-
-var e int = nil;
 """
-        expect = "Type Mismatch: VarDecl(e,IntType,Nil)\n"
+        expect = """Type Mismatch: If(Id(x),Block([FuncCall(putLn,[])]))\n"""
         self.assertTrue(TestChecker.test(input, expect, 456))
-        
+
     def test_457(self):
-        input =  """
-var a boolean = 1 > 2;
-var b boolean = 1.0 < 2.0;
-var c boolean = "1" == "2";
-var d boolean = 1 > 2.0;
+        input = """
+const c = 1
+func main() {
+    c := "shadow"
+}
 """
-        expect= "Type Mismatch: BinaryOp(IntLiteral(1),>,FloatLiteral(2.0))\n"
+        expect = """Type Mismatch: Assign(Id(c),StringLiteral("shadow"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 457))
-        
+
     def test_458(self):
-        input =  """
-func foo(){
-    for var i int = 1; a < 10; i := 1.0 {
-        var a = 1;
-    }
+        input = """
+type S struct {
+    x int
+}
+func (s S) set() {
+    return
+}
+func main() {
+    s := S{}
+    x := s.set()
 }
 """
-        expect = "Undeclared Identifier: a\n" # ???
+        expect = "Type Mismatch: MethodCall(Id(s),set,[])\n"
         self.assertTrue(TestChecker.test(input, expect, 458))
-        
+
     def test_459(self):
-        input =  """
-func foo() int {
-    return [2]int{1, 2}[a]
+        input = """
+var a = [2]int{1, 2}
+var b = [2]string{"a", "b"}
+func main() {
+    a := b
 }
-
-var a = foo;
 """
-        expect = "Undeclared Identifier: a\n"
+        expect = "Type Mismatch: Assign(Id(a),Id(b))\n"
         self.assertTrue(TestChecker.test(input, expect, 459))
-        
-    def test_460(self):
-        input =  """
 
-func foo(){
-    for var i int = 3; i; i := 1.0 {
-        var a = 1;
-    }
+    def test_460(self):
+        input = """
+type I interface {
+    foo()
+}
+type J interface {
+    fun()
+}
+type S struct {}
+func (s S) foo() {
+    return
+}
+var i I = S{}
+var j J = S{}
+"""
+        expect = "Type Mismatch: VarDecl(j,Id(J),StructLiteral(S,[]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 460))
+
+    def test_461(self):
+        input = """
+func foo() int {
+    return "wrong"
+}
+func main() {
+    x := foo() + foo
 }
 """
-        expect = "Type Mismatch: For(VarDecl(i,IntType,IntLiteral(3)),Id(i),Assign(Id(i),FloatLiteral(1.0)),Block([VarDecl(a,IntLiteral(1))]))\n"
-        self.assertTrue(TestChecker.test(input, expect, 460))
-        
-    def test_461(self):
-        input =  """
-
-type S1 struct {age int;}
-func (s S1) put() {return ;}
-func (s S1) name() {
-s.name();
-var a = s.put();
-}
-"""     
-        expect = "Type Mismatch: MethodCall(Id(s),put,[])\n"
+        expect = """Type Mismatch: Return(StringLiteral("wrong"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 461))
-    
+
     def test_462(self):
-        input =  """var a [2] int = [2][2] int {{1,2}, {2,2}};"""
-        expect = "Type Mismatch: VarDecl(a,ArrayType(IntType,[IntLiteral(2)]),ArrayLiteral([IntLiteral(2),IntLiteral(2)],IntType,[[IntLiteral(1),IntLiteral(2)],[IntLiteral(2),IntLiteral(2)]]))\n"
+        input = """
+type S struct {
+    x int
+}
+func main() {
+    s := S{}
+    s := "reassign"
+}
+"""
+        expect = """Type Mismatch: Assign(Id(s),StringLiteral("reassign"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 462))
 
     def test_463(self):
-        input =  """
-
-type A interface {foo();}
-
-func foo() {
-    return A;
-}
-"""
-        expect = "Undeclared Identifier: A\n"
-        self.assertTrue(TestChecker.test(input, expect, 463))
-    
-    def test_464(self):
-        input =  """
-
-type S1 struct {age int;}
-type I1 interface {name();}
-
-func (s S1) name() {return;}
-
-var b [2] S1;
-var a [2] I1 = b;
-"""
-        expect = "Type Mismatch: VarDecl(a,ArrayType(Id(I1),[IntLiteral(2)]),Id(b))\n"
-        self.assertTrue(TestChecker.test(input, expect, 464))
-        
-    def test_465(self):
-        input =  """
-var a = [2] int {1, 2}
-var c [2] float = a
-""" 
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 465))
-        
-    def test_466(self):
-        input =  """
-type K struct {a int;}
-func (k K) koo(a [1 + 2] int) {return;}
-type H interface {koo(a [1 + 2] int);}
-
-const c = 4;
-func foo() {
-    var k H;
-    k.koo([c - 1] int {1,2,3})
-} 
-"""
-        input = Program([StructType("K",[("a",IntType())],[]),MethodDecl("k",Id("K"),FuncDecl("koo",[ParamDecl("a",ArrayType([BinaryOp("+", IntLiteral(1), IntLiteral(2))],IntType()))],VoidType(),Block([Return(None)]))),InterfaceType("H",[Prototype("koo",[ArrayType([BinaryOp("+", IntLiteral(1), IntLiteral(2))],IntType())],VoidType())]),ConstDecl("c",None,IntLiteral(4)),FuncDecl("foo",[],VoidType(),Block([VarDecl("k",Id("H"), None),MethCall(Id("k"),"koo",[ArrayLiteral([BinaryOp("-", Id("c"), IntLiteral(1))],IntType(),[IntLiteral(1),IntLiteral(2),IntLiteral(3)])])]))])
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 466)) #??? #!!!
-        
-    def test_467(self):
-        input =  """
-func foo() {
-    var arr [2][3]int
-    for a, b := range arr {
-        var c int = a
-        var d [3]float = b
-        var e [2]string = a
+        input = """
+func main() {
+    arr := [2][3]int{{1, 2, 3}, {4, 5, 6}}
+    for i, row := range arr {
+        row := i
     }
 }
 """
-        expect = "Type Mismatch: VarDecl(e,ArrayType(StringType,[IntLiteral(2)]),Id(a))\n"
+        expect = "Type Mismatch: Assign(Id(row),Id(i))\n"
+        self.assertTrue(TestChecker.test(input, expect, 463))
+
+    def test_464(self):
+        input = """
+type S struct {
+    val int
+}
+func (s S) get() int {
+    return s.val
+}
+func main() {
+    s := S{}
+    s.get := 5
+}
+"""
+        expect = "Undeclared Field: get\n"
+        self.assertTrue(TestChecker.test(input, expect, 464))
+
+    def test_465(self):
+        input = """
+const n = 3
+var a = [n]int{1, 2, 3}
+func main() {
+    a[0] := a
+}
+"""
+        expect = "Type Mismatch: Assign(ArrayCell(Id(a),[IntLiteral(0)]),Id(a))\n"
+        self.assertTrue(TestChecker.test(input, expect, 465))
+
+    def test_466(self):
+        input = """
+type I interface {
+    get(x int) int
+}
+func main() {
+    var i I
+    x := i.get()
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(i),get,[])\n"
+        self.assertTrue(TestChecker.test(input, expect, 466))
+
+    def test_467(self):
+        input = """
+func main() {
+    x := 1
+    y := x % "mod"
+}
+"""
+        expect = """Type Mismatch: BinaryOp(Id(x),%,StringLiteral("mod"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 467))
-        
+
     def test_468(self):
         input = """
-  
-type S1 struct {abcd int;}
-type S2 struct {abcd int;}
-type I1 interface {abcd();}
-type I2 interface {abcd();}
-
-func (s S1) abcd() {return;}
-
-var a S1;
-var b S2;
-var c I1 = a;
+type S struct {
+    x int
+}
+type T struct {
+    s S
+}
+var t = T{s: S{x: 1}}
+var x = t.s.y
 """
-        expect = "Redeclared Method: abcd\n"
-        self.assertTrue(TestChecker.test(input, expect, 468))     
-        
+        expect = "Undeclared Field: y\n"
+        self.assertTrue(TestChecker.test(input, expect, 468))
+
     def test_469(self):
         input = """
-  
-type S1 struct {name int;}
-type S2 struct {name int;}
-type I1 interface {abcd();}
-type I2 interface {abcd();}
-
-func (s S1) abcd() {return;}
-
-var a S1;
-var b S2;
-var c I1 = a;
-var d I2 = b;
+func foo(x int, y int) int {
+    return x + y
+}
+func main() {
+    x := foo(1, 2, 3)
+}
 """
-        expect = "Type Mismatch: VarDecl(d,Id(I2),Id(b))\n"
-        self.assertTrue(TestChecker.test(input, expect, 469))  
-        
+        expect = "Type Mismatch: FuncCall(foo,[IntLiteral(1),IntLiteral(2),IntLiteral(3)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 469))
+
     def test_470(self):
         input = """
 func main() {
-    for i := 0; i < 10; c += 1 {
-        var c = 5
-        i += 1 
+    x := 1
+    y := x[0]
+}
+"""
+        expect = "Type Mismatch: ArrayCell(Id(x),[IntLiteral(0)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 470))
+
+    def test_471(self):
+        input = """
+type S struct {
+    x int
+}
+func (s S) get() int {
+    return s.x
+}
+func main() {
+    s := S{}
+    x := s.get().x
+}
+"""
+        expect = "Type Mismatch: FieldAccess(MethodCall(Id(s),get,[]),x)\n"
+        self.assertTrue(TestChecker.test(input, expect, 471))
+
+    def test_472(self):
+        input = """
+func foo(x int) int {
+    return x
+}
+func foo() {
+    return
+}
+"""
+        expect = "Redeclared Function: foo\n"
+        self.assertTrue(TestChecker.test(input, expect, 472))
+
+    def test_473(self):
+        input = """
+type I interface {
+    set(x string)
+}
+type S struct {
+    val string
+}
+func (s S) set(x string) {
+    s.val := x
+}
+var i I = S{}
+func main() {
+    i.set(42)
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(i),set,[IntLiteral(42)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 473))
+
+    def test_474(self):
+        input = """
+const n = 2
+var a = [n]int{1, 2}
+func main() {
+    for i, v := range a {
+        i := v + "text"
     }
 }
 """
-        expect = "Undeclared Identifier: c\n"
-        self.assertTrue(TestChecker.test(input, expect, 470))
-        
-    def test_471(self):
-        input = """
-type Person struct {
-    name string
-}        
-
-func (p Person) getName(a int) {}
-
-func main() {
-    var p Person;
-    p.getName(10.0)
-}
-"""
-        expect = "Type Mismatch: MethodCall(Id(p),getName,[FloatLiteral(10.0)])\n"
-        self.assertTrue(TestChecker.test(input, expect, 471))
-        
-    def test_472(self):
-        input = """
-var b [3]int = [3]int{1, 2, 3}
-var a [3]float = b
-var c [3]float = [3]string{1.0, 2.0, 3.0}
-"""
-        expect = "Type Mismatch: VarDecl(c,ArrayType(FloatType,[IntLiteral(3)]),ArrayLiteral([IntLiteral(3)],StringType,[FloatLiteral(1.0),FloatLiteral(2.0),FloatLiteral(3.0)]))\n"
-        self.assertTrue(TestChecker.test(input, expect, 472))
-    
-    def test_473(self):
-        input = """
-type EFG struct {
-    Abc int;
-}
-func (v EFG) foo (v int) {return;}
-func foo () {return;}
-"""
-        expect = ""
-        self.assertTrue(TestChecker.test(input, expect, 473))
-    
-    def test_474(self):
-        input ="""
-func foo() {
-    a := 1;
-    var a = 1;
-}
-"""
-        expect = "Redeclared Variable: a\n"
+        expect = """Type Mismatch: BinaryOp(Id(v),+,StringLiteral("text"))\n"""
         self.assertTrue(TestChecker.test(input, expect, 474))
 
     def test_475(self):
         input = """
-func Abc (b int) {
-    for var a = 1; c < 1; a += c {
-        const c = 2;
-    }
+type S struct {
+    x int
+    x string
 }
-        """
-        self.assertTrue(TestChecker.test(input, """Undeclared Identifier: c\n""", 475)) 
-        
+var s = S{x: 1}
+"""
+        expect = "Redeclared Field: x\n"
+        self.assertTrue(TestChecker.test(input, expect, 475))
+
     def test_476(self):
         input = """
-var v EFG;
-func (v EFG) foo (v int) int {
-    return v;
-}
-
-type EFG struct {
-    Abc int;
+func main() {
+    x := 1
+    var y boolean 
+    y := x + 1
 }
 """
-        expect = ""
+        expect = "Type Mismatch: Assign(Id(y),BinaryOp(Id(x),+,IntLiteral(1)))\n"
         self.assertTrue(TestChecker.test(input, expect, 476))
-        
+
     def test_477(self):
         input = """
-func foo(){
-    for var i int = 1; a < 10; i := 1.0 {
-        var a = 1;
-    }
+type S struct {
+    val int
+    t T
+}
+type T interface {
+    get() S
+}
+func main() {
+    s := S{}
+    s.t := S{}
 }
 """
-        expect = "Undeclared Identifier: a\n"
+        expect = "Type Mismatch: Assign(FieldAccess(Id(s),t),StructLiteral(S,[]))\n"
         self.assertTrue(TestChecker.test(input, expect, 477))
-        
+
     def test_478(self):
         input = """
-type putLn struct {
-    name int;
+func foo() int {
+    return 1
+}
+func main() {
+    x := foo
+    y := x()
 }
 """
-        expect = "Redeclared Type: putLn\n"
+        expect = "Undeclared Identifier: foo\n"
         self.assertTrue(TestChecker.test(input, expect, 478))
-        
+
     def test_479(self):
         input = """
-var a int; 
-type b struct {c int;}; 
-func (x b) a() {
-    putLn();
-}; 
-func (x b) c() {
-    return;
-};
+type T struct {
+    x int
+}
+var t = T{x: 1}
+func main() {
+    t.x := t
+}
 """
-        expect = "Redeclared Method: c\n"
+        expect = "Type Mismatch: Assign(FieldAccess(Id(t),x),Id(t))\n"
         self.assertTrue(TestChecker.test(input, expect, 479))
-        
+    
     def test_480(self):
         input = """
 var a int; 
@@ -1099,3 +1094,135 @@ func foo(a int) {
 """
         expect = "Undeclared Function: foo\n"
         self.assertTrue(TestChecker.test(input, expect, 489))
+    
+    def test_490(self):
+        input = """
+func foo() int {
+    const foo = 1;
+    return foo()
+}
+        """
+        self.assertTrue(TestChecker.test(input, """Undeclared Function: foo\n""", 490))
+        
+    def test_491(self):
+        input ="""
+func (v ABC) print () {return ;}
+func (v ABC) Hi () {return ;}
+type ABC struct {
+    TrungTin int;
+    Hi int;
+}
+        """
+        self.assertTrue(TestChecker.test(input, """Redeclared Method: Hi\n""", 491))
+
+    def test_492(self):
+        input = """
+type S struct {
+    x int
+}
+func main() {
+    s := S{}
+    s := s.x
+}
+"""
+        expect = "Type Mismatch: Assign(Id(s),FieldAccess(Id(s),x))\n"
+        self.assertTrue(TestChecker.test(input, expect, 492))
+
+    def test_493(self):
+        input = """
+func main() {
+    arr := [2][2]int{{1, 2}, {3, 4}}
+    arr[1] := "row"
+}
+"""
+        expect = """Type Mismatch: Assign(ArrayCell(Id(arr),[IntLiteral(1)]),StringLiteral("row"))\n"""
+        self.assertTrue(TestChecker.test(input, expect, 493))
+
+    def test_494(self):
+        input = """
+type I interface {
+    print() 
+}
+type S struct {
+    val S
+}
+func (s S) print() {
+    return
+}
+func (s S) get() S {
+    return s.val
+}
+var i I 
+var a S = S{}
+func main() {
+    i := a.get()
+    var a int = a.get()
+}
+"""
+        expect = "Type Mismatch: VarDecl(a,IntType,MethodCall(Id(a),get,[]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 494))
+
+    def test_495(self):
+        input = """
+func foo(x int) int {
+    return x
+}
+func main() {
+    x := foo(foo)
+}
+"""
+        expect = "Undeclared Identifier: foo\n"
+        self.assertTrue(TestChecker.test(input, expect, 495))
+
+    def test_496(self):
+        input = """
+const n = 2
+var a = [n]int{1, 2}
+func main() {
+    for i := 0; i < a; i += 1 {
+        putLn()
+    }
+}
+"""
+        expect = "Type Mismatch: BinaryOp(Id(i),<,Id(a))\n"
+        self.assertTrue(TestChecker.test(input, expect, 496))
+
+    def test_497(self):
+        input = """
+type S struct {
+    x int
+}
+func (s S) set(x int) {
+    s.x := x
+}
+func main() {
+    s := S{}
+    s.set(s)
+}
+"""
+        expect = "Type Mismatch: MethodCall(Id(s),set,[Id(s)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 497))
+
+    def test_498(self):
+        input = """
+type T struct {
+    val int
+}
+var t = T{val: 1}
+var x = t.val[0]
+"""
+        expect = "Type Mismatch: ArrayCell(FieldAccess(Id(t),val),[IntLiteral(0)])\n"
+        self.assertTrue(TestChecker.test(input, expect, 498))
+
+    def test_499(self):
+        input = """
+func main() {
+    x := 1
+    y := x
+    for x, y := range y {
+        putLn()
+    }
+}
+"""
+        expect = "Type Mismatch: ForEach(Id(x),Id(y),Id(y),Block([FuncCall(putLn,[])]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 499))
