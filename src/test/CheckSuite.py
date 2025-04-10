@@ -481,13 +481,15 @@ func main() {
     def test_443(self):
         input = """
 func main() {
-    arr := [2]int{1, 2}
+    arr := [2][3]int{1, 2}
+    var i int
+    var v int
     for i, v := range arr {
-        v := "redeclared"
+        continue;
     }
 }
 """
-        expect = """Type Mismatch: Assign(Id(v),StringLiteral("redeclared"))\n"""
+        expect = """Type Mismatch: ForEach(Id(i),Id(v),Id(arr),Block([Continue()]))\n"""
         self.assertTrue(TestChecker.test(input, expect, 443))
 
     def test_444(self):
@@ -746,12 +748,12 @@ func main() {
         input = """
 func main() {
     arr := [2][3]int{{1, 2, 3}, {4, 5, 6}}
-    for i, row := range arr {
-        row := i
+    var a [3]int
+    for i, a := range arr {
     }
 }
 """
-        expect = "Type Mismatch: Assign(Id(row),Id(i))\n"
+        expect = "Undeclared Identifier: i\n"
         self.assertTrue(TestChecker.test(input, expect, 463))
 
     def test_464(self):
@@ -889,15 +891,15 @@ func main() {
 
     def test_474(self):
         input = """
-const n = 2
-var a = [n]int{1, 2}
-func main() {
-    for i, v := range a {
-        i := v + "text"
+
+func foo () {
+    var a = 1;
+    for a, b := range [3]int {1, 2, 3} {
+        continue;
     }
 }
 """
-        expect = """Type Mismatch: BinaryOp(Id(v),+,StringLiteral("text"))\n"""
+        expect = "Undeclared Identifier: b\n"
         self.assertTrue(TestChecker.test(input, expect, 474))
 
     def test_475(self):

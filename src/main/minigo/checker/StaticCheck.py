@@ -138,7 +138,7 @@ class StaticChecker(BaseVisitor,Utils):
                     if not all(self.matchType(pair[0], pair[1].parType, c) 
                                 for pair in zip(prototype.params, method_decl.fun.params)):
                         return False
-                    return True
+                return True
             if isinstance(lhs, FloatType) and isinstance(rhs, IntType):
                 return True
         if (isinstance(lhs, (StructType, InterfaceType)) 
@@ -396,14 +396,16 @@ class StaticChecker(BaseVisitor,Utils):
         # Check type of array expr
         if not isinstance(arrType, ArrayType):
             raise TypeMismatch(ast)
-        block = Block(
-            [
-                Assign(Id(ast.idx.name), IntLiteral(0)),
-                Assign(Id(ast.value.name), ArrayCell(ast.arr, [IntLiteral(0)]))
-            ] 
-            + ast.loop.member
-        )
-        self.visit(block, c)
+        
+        # Check if idx and value are declared
+        # Check if idx is IntType
+        if not isinstance(self.visit(ast.idx, c), IntType):
+            raise TypeMismatch(ast)
+        if not self.matchType(self.visit(ast.value, c), 
+                              self.visit(ArrayCell(ast.arr, [IntLiteral(0)]), c), 
+                              c):
+            raise TypeMismatch(ast)
+        self.visit(ast.loop, c)
 
     def visitBlock(self, ast, c):
         """
@@ -596,9 +598,9 @@ class StaticChecker(BaseVisitor,Utils):
         all_symbols = reduce(lambda acc, ele: ele + acc, c, [])
         id_symbol = self.lookup(ast.name, all_symbols, lambda x: x.name)
 
-        if (id_symbol is None or 
-            isinstance(id_symbol, (StructType, InterfaceType)) or #??? What error to be raised
-            isinstance(id_symbol.mtype, MType)
+        if (id_symbol is None 
+            or isinstance(id_symbol, (StructType, InterfaceType)) 
+            or isinstance(id_symbol.mtype, MType)
         ):
             raise Undeclared(Identifier(), ast.name)
         # StructType and InterfaceType are represented by Id

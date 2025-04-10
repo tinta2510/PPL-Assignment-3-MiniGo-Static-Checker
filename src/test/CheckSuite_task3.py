@@ -180,14 +180,15 @@ func (p Person) getAge (p string) int {
     def test_419(self):
         input = """
 func main () {
-    arr := [1]int{1, 2, 3};
+    arr := [1][3]int{1, 2, 3};
+    var idx int = 1;
+    var val int
     for idx, val := range arr {
-        var idx = 1;
-        var val = 2;
+        continue;
     }
 }
 """
-        expect = "Redeclared Variable: idx\n"
+        expect = "Type Mismatch: ForEach(Id(idx),Id(val),Id(arr),Block([Continue()]))\n"
         self.assertTrue(TestChecker.test(input, expect, 419))
         
     def test_420(self):
@@ -208,11 +209,11 @@ func main () {
     func foo () {
         const a = 1;
         for a, b := range [3]int {1, 2, 3} {
-            var b = 1;
+            continue;
         }
     }
     """
-        expect = "Redeclared Variable: b\n"
+        expect = "Undeclared Identifier: b\n"
         self.assertTrue(TestChecker.test(input, expect, 421))
     
     def test_422(self):
@@ -809,6 +810,8 @@ func foo() {
         input =  """
 func foo() {
     var arr [2][3]int
+    var a string
+    var  b [3] int
     for a, b := range arr {
         var c int = a
         var d [3]float = b
@@ -816,7 +819,7 @@ func foo() {
     }
 }
 """
-        expect = "Type Mismatch: VarDecl(e,ArrayType(StringType,[IntLiteral(2)]),Id(a))\n"
+        expect = "Type Mismatch: ForEach(Id(a),Id(b),Id(arr),Block([VarDecl(c,IntType,Id(a)),VarDecl(d,ArrayType(FloatType,[IntLiteral(3)]),Id(b)),VarDecl(e,ArrayType(StringType,[IntLiteral(2)]),Id(a))]))\n"
         self.assertTrue(TestChecker.test(input, expect, 467))
         
     def test_468(self):
@@ -1119,3 +1122,98 @@ type TIEN struct {
 }
         """
         self.assertTrue(TestChecker.test(input, """Redeclared Method: Tien\n""", 491))
+        
+        
+    def test_492(self):
+        input = Program([StructType("C1",[("a",ArrayType([IntLiteral(2),IntLiteral(3),IntLiteral(4)],IntType()))],[]),
+                StructType("C2",[("a",ArrayType([IntLiteral(2),IntLiteral(3),IntLiteral(4)],Id("C1")))],[]),
+                VarDecl("o",Id("C2"),NilLiteral()), VarDecl("x",FloatType(),
+                ArrayCell(FieldAccess(ArrayCell(FieldAccess(Id("o"),"a"), [IntLiteral(2),IntLiteral(3),IntLiteral(4)]), "a"),[IntLiteral(1),IntLiteral(2),IntLiteral(3)]))])
+        self.assertTrue(TestChecker.test(input, "", 492))
+        
+    def test_493(self):
+        input = """
+func foo() {
+    var a = foo
+}
+        """
+        self.assertTrue(TestChecker.test(input, """Undeclared Identifier: foo\n""", 493))
+    
+    def test_494(self):
+        input = """
+var arr = [2][3] int {1, 2, 3}
+var val [3] int 
+func main() {
+    for idx, val := range arr {
+        getIntLn()
+    }
+}
+
+        """
+        self.assertTrue(TestChecker.test(input, """Undeclared Identifier: idx\n""", 494))
+    
+    def test_495(self):
+        input = """
+var v TIEN;      
+type TIEN struct {
+    a int;
+} 
+type VO interface {
+    fooA();
+    fooB();
+    fooC();
+}
+
+func (v TIEN) fooA() {return ;}
+func (v TIEN) fooB() {return ;}
+func (v TIEN) fooC(a int) {return ;}
+
+func foo() {
+    var x VO = TIEN{a:1};  
+}
+"""   
+        expect = """Type Mismatch: VarDecl(x,Id(VO),StructLiteral(TIEN,[(a,IntLiteral(1))]))\n"""
+        self.assertTrue(TestChecker.test(input, expect, 495))
+        
+    def test_496(self):
+        input = """
+func Votien (b int) {
+    var array = [2] int {1,2}
+    var index = 1.0;
+    var value int;
+
+    for index, value := range  array {
+        return;
+    }
+}
+"""
+        expect = "Type Mismatch: ForEach(Id(index),Id(value),Id(array),Block([Return()]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 496))
+    
+    def test_497(self):
+        input = """
+func Votien () {
+    var array = [2] int {1,2}
+    var index int;
+    var value float;
+    for index, value := range array {
+        return;
+    }
+}
+"""
+        expect = "Type Mismatch: ForEach(Id(index),Id(value),Id(array),Block([Return()]))\n"
+        self.assertTrue(TestChecker.test(input, expect, 497))
+        
+    def test_498(self):
+        input = """
+
+func foo () {
+    var a = 1;
+    var b = 1;
+    for a, b := range [3]int {1, 2, 3} {
+        var b = 1;
+    }
+}
+"""
+        expect = ""
+        self.assertTrue(TestChecker.test(input, expect, 498))
